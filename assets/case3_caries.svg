@@ -1,0 +1,84 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 450" width="100%" height="100%">
+  <defs>
+    <radialGradient id="oralCavity3" cx="50%" cy="50%" r="60%">
+      <stop offset="0%" stop-color="#4a151b"/>
+      <stop offset="60%" stop-color="#2a0a0d"/>
+      <stop offset="100%" stop-color="#140305"/>
+    </radialGradient>
+    <!-- Inflamed red/swollen gums -->
+    <linearGradient id="gumInflamed" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#ef4444"/>
+      <stop offset="50%" stop-color="#dc2626"/>
+      <stop offset="100%" stop-color="#991b1b"/>
+    </linearGradient>
+    <linearGradient id="toothWhite3" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#ffffff"/>
+      <stop offset="70%" stop-color="#f2ebe0"/>
+      <stop offset="100%" stop-color="#d6c6b0"/>
+    </linearGradient>
+    <!-- Deep caries cavity dark gradient -->
+    <radialGradient id="deepCavityGrad" cx="40%" cy="40%" r="60%">
+      <stop offset="0%" stop-color="#1c1917"/>
+      <stop offset="60%" stop-color="#451a03"/>
+      <stop offset="100%" stop-color="#78350f"/>
+    </radialGradient>
+  </defs>
+
+  <rect width="600" height="450" fill="url(#oralCavity3)" rx="16"/>
+
+  <!-- Upper Gums - Inflamed / Gingivitis Erythema -->
+  <path d="M 60,130 Q 300,75 540,130 Q 510,195 480,185 Q 420,180 360,180 Q 300,175 240,180 Q 180,180 120,185 Z" fill="url(#gumInflamed)" opacity="0.95"/>
+
+  <!-- Upper Teeth -->
+  <rect x="100" y="160" width="38" height="45" rx="10" fill="url(#toothWhite3)" stroke="#cbd5e1" stroke-width="2"/>
+  <rect x="145" y="155" width="42" height="50" rx="10" fill="url(#toothWhite3)" stroke="#cbd5e1" stroke-width="2"/>
+  <path d="M 195,150 Q 215,145 235,150 L 230,210 Q 215,225 200,210 Z" fill="url(#toothWhite3)" stroke="#cbd5e1" stroke-width="2"/>
+  
+  <!-- Central Incisors Upper with Deep Cavity Hole -->
+  <rect x="242" y="145" width="52" height="70" rx="12" fill="url(#toothWhite3)" stroke="#cbd5e1" stroke-width="2"/>
+  <rect x="304" y="145" width="52" height="70" rx="12" fill="url(#toothWhite3)" stroke="#cbd5e1" stroke-width="2"/>
+  
+  <path d="M 365,150 Q 385,145 405,150 L 400,210 Q 385,225 370,210 Z" fill="url(#toothWhite3)" stroke="#cbd5e1" stroke-width="2"/>
+  
+  <!-- Right Molar with Big Occlusal Cavity -->
+  <rect x="413" y="155" width="42" height="50" rx="10" fill="url(#toothWhite3)" stroke="#cbd5e1" stroke-width="2"/>
+  <rect x="462" y="160" width="38" height="45" rx="10" fill="url(#toothWhite3)" stroke="#cbd5e1" stroke-width="2"/>
+
+  <!-- Deep Cavitation / Black Hole on Upper Right Central Incisor (Gigi 51) -->
+  <path d="M 270,170 Q 295,160 294,195 Q 285,210 268,205 Q 255,190 270,170 Z" fill="url(#deepCavityGrad)" stroke="#292524" stroke-width="2"/>
+  <circle cx="282" cy="188" r="6" fill="#0c0a09"/>
+  <!-- Broken enamel jagged edge -->
+  <path d="M 264,178 L 270,183 L 267,192 L 273,198" fill="none" stroke="#78350f" stroke-width="2"/>
+
+  <!-- Second Deep Cavity on Molar (Gigi 54) -->
+  <ellipse cx="434" cy="175" rx="12" ry="15" fill="url(#deepCavityGrad)" stroke="#1c1917" stroke-width="1.5"/>
+  <circle cx="434" cy="175" r="5" fill="#000000"/>
+
+  <!-- Gingival bleeding / red swollen spot near cervical -->
+  <ellipse cx="280" cy="152" rx="16" ry="6" fill="#dc2626" opacity="0.9"/>
+  <circle cx="280" cy="154" r="3" fill="#b91c1c"/>
+
+  <!-- Lower Teeth and Gums -->
+  <path d="M 70,330 Q 300,370 530,330 Q 500,270 450,280 Q 380,285 300,285 Q 220,285 150,280 Z" fill="url(#gumInflamed)" opacity="0.95"/>
+
+  <rect x="150" y="245" width="36" height="42" rx="8" fill="url(#toothWhite3)" stroke="#cbd5e1" stroke-width="1.5"/>
+  <rect x="192" y="240" width="38" height="48" rx="8" fill="url(#toothWhite3)" stroke="#cbd5e1" stroke-width="1.5"/>
+  <rect x="236" y="235" width="40" height="52" rx="9" fill="url(#toothWhite3)" stroke="#cbd5e1" stroke-width="1.5"/>
+  <!-- Lower Central with Caries lesion -->
+  <rect x="282" y="232" width="42" height="55" rx="9" fill="url(#toothWhite3)" stroke="#cbd5e1" stroke-width="1.5"/>
+  <ellipse cx="303" cy="250" rx="8" ry="10" fill="url(#deepCavityGrad)"/>
+  
+  <rect x="330" y="235" width="40" height="52" rx="9" fill="url(#toothWhite3)" stroke="#cbd5e1" stroke-width="1.5"/>
+  <rect x="376" y="240" width="38" height="48" rx="8" fill="url(#toothWhite3)" stroke="#cbd5e1" stroke-width="1.5"/>
+  <rect x="420" y="245" width="36" height="42" rx="8" fill="url(#toothWhite3)" stroke="#cbd5e1" stroke-width="1.5"/>
+
+  <!-- Tongue -->
+  <path d="M 180,265 Q 300,250 420,265 Q 300,320 180,265 Z" fill="#9f1239" opacity="0.85"/>
+
+  <!-- Watermark badge -->
+  <g transform="translate(20, 20)">
+    <rect width="260" height="32" rx="16" fill="#dc2626" opacity="0.9"/>
+    <circle cx="16" cy="16" r="6" fill="#f87171"/>
+    <text x="32" y="21" fill="#ffffff" font-family="'Plus Jakarta Sans', sans-serif" font-size="13" font-weight="bold">Kasus 3: Karies Gigi Berlubang</text>
+  </g>
+</svg>

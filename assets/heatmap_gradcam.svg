@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 450" width="100%" height="100%">
+  <defs>
+    <!-- Grad-CAM Hotspot Gradient for Tooth 51 & 61 -->
+    <radialGradient id="hotspot1" cx="47%" cy="40%" r="22%">
+      <stop offset="0%" stop-color="#ef4444" stop-opacity="0.88"/>
+      <stop offset="35%" stop-color="#f97316" stop-opacity="0.75"/>
+      <stop offset="65%" stop-color="#eab308" stop-opacity="0.55"/>
+      <stop offset="85%" stop-color="#22c55e" stop-opacity="0.25"/>
+      <stop offset="100%" stop-color="#3b82f6" stop-opacity="0"/>
+    </radialGradient>
+
+    <!-- Grad-CAM Hotspot for Molar 54 -->
+    <radialGradient id="hotspot2" cx="72%" cy="41%" r="18%">
+      <stop offset="0%" stop-color="#dc2626" stop-opacity="0.85"/>
+      <stop offset="40%" stop-color="#f59e0b" stop-opacity="0.65"/>
+      <stop offset="75%" stop-color="#10b981" stop-opacity="0.25"/>
+      <stop offset="100%" stop-color="#0284c7" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+
+  <!-- Heatmap Active Attention Zones -->
+  <rect x="180" y="80" width="240" height="200" fill="url(#hotspot1)"/>
+  <rect x="360" y="90" width="180" height="180" fill="url(#hotspot2)"/>
+
+  <!-- Legend in bottom right -->
+  <g transform="translate(420, 390)">
+    <rect width="165" height="42" rx="8" fill="rgba(15, 23, 42, 0.85)" stroke="#475569" stroke-width="1"/>
+    <text x="10" y="18" fill="#ffffff" font-family="'Plus Jakarta Sans', sans-serif" font-size="10" font-weight="700">Grad-CAM Attention AI</text>
+    <rect x="10" y="25" width="145" height="8" rx="4" fill="url(#legendGrad)"/>
+    <text x="10" y="39" fill="#94a3b8" font-family="sans-serif" font-size="7">Rendah</text>
+    <text x="125" y="39" fill="#f87171" font-family="sans-serif" font-size="7">Lesi Karies</text>
+  </g>
+  <linearGradient id="legendGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+    <stop offset="0%" stop-color="#3b82f6"/>
+    <stop offset="35%" stop-color="#22c55e"/>
+    <stop offset="70%" stop-color="#eab308"/>
+    <stop offset="100%" stop-color="#ef4444"/>
+  </linearGradient>
+</svg>

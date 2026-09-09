@@ -1,0 +1,625 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SIGI-AI — Skrining Gigi Anak Berbasis Kecerdasan Buatan</title>
+  <meta name="description" content="Inovasi Produk Digital: Prototipe SIGI-AI untuk deteksi dini karies dan kesehatan gigi anak berbasis AI Computer Vision.">
+  
+  <!-- PWA Meta Tags & Manifest -->
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#0284c7">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="SIGI-AI">
+  <link rel="apple-touch-icon" href="assets/logo.svg">
+  <link rel="icon" type="image/svg+xml" href="assets/logo.svg">
+
+  <!-- Google Fonts: Plus Jakarta Sans -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+  <!-- Top Presentation Toolbar (Untuk Demo Juri & Pengujian Layar) -->
+  <header class="presentation-bar">
+    <div class="brand-badge">
+      <img src="assets/logo.svg" alt="SIGI-AI Logo">
+      <span>SIGI-AI • Inovasi Produk Digital</span>
+    </div>
+    <div class="presentation-controls">
+      <button id="btnInstallPwa" class="btn-quick-guide" style="background: rgba(16, 185, 129, 0.25); border-color: rgba(16, 185, 129, 0.5);">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        Install App (PWA)
+      </button>
+      <button id="btnQuickGuide" class="btn-quick-guide">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+        Panduan Demo Juri
+      </button>
+      <button id="btnToggleFrame" class="btn-toggle-frame">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/></svg>
+        Mode Layar Penuh
+      </button>
+    </div>
+  </header>
+
+  <!-- Main Smartphone Device Wrapper Simulator -->
+  <main class="app-wrapper" id="appWrapper">
+    <!-- Smartphone Hardware Notch -->
+    <div class="phone-notch">
+      <div class="phone-speaker"></div>
+      <div class="phone-camera-lens"></div>
+    </div>
+
+    <!-- Phone Status Bar -->
+    <div class="status-bar">
+      <span id="liveClock">09:41</span>
+      <div class="status-icons">
+        <!-- Signal icon -->
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><rect x="2" y="16" width="3" height="6" rx="0.5"/><rect x="7" y="12" width="3" height="10" rx="0.5"/><rect x="12" y="8" width="3" height="14" rx="0.5"/><rect x="17" y="4" width="3" height="18" rx="0.5"/></svg>
+        <!-- Wifi icon -->
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12.55a11 11 0 0 1 14.08 0"/><path d="M1.42 9a16 16 0 0 1 21.16 0"/><path d="M8.53 16.11a6 6 0 0 1 6.95 0"/><line x1="12" y1="20" x2="12.01" y2="20"/></svg>
+        <!-- Battery icon -->
+        <svg width="18" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="16" height="10" rx="2"/><line x1="20" y1="11" x2="20" y2="13"/><rect x="4" y="9" width="10" height="6" fill="currentColor"/></svg>
+      </div>
+    </div>
+
+    <!-- Container App Screens -->
+    <div class="app-container">
+      <div class="screens-viewport">
+
+        <!-- ==========================================
+             SCREEN 1: BERANDA (HOME DASHBOARD)
+             ========================================== -->
+        <section class="screen active" id="screen-home">
+          <!-- Top Profile Switcher -->
+          <div class="home-header">
+            <div class="user-profile-badge" id="userProfileBadge" title="Klik untuk beralih profil anak">
+              <div class="avatar-bubble" id="childAvatarText">AR</div>
+              <div class="user-meta">
+                <h4 id="childProfileName">Ahmad Raihan</h4>
+                <p id="childProfileAge">4 Tahun 2 Bulan</p>
+              </div>
+            </div>
+            <div class="header-actions">
+              <button class="btn-icon-pill" title="Notifikasi Posyandu">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+              </button>
+            </div>
+          </div>
+
+          <!-- Main Health Score Card -->
+          <div class="health-score-card">
+            <!-- Background SVG Tooth Motif -->
+            <svg class="card-bg-pattern" viewBox="0 0 100 100" fill="currentColor">
+              <path d="M25,25 Q55,8 85,25 Q110,40 105,75 Q100,105 88,125 Q75,130 65,105 Q55,85 55,85 Q55,85 45,105 Q35,130 22,125 Q10,105 5,75 Q0,40 25,25 Z"/>
+            </svg>
+
+            <div class="score-badge-row">
+              <span class="score-badge-tag" id="homeScoreBadge">RISIKO RENDAH</span>
+              <span style="font-size: 0.72rem; opacity: 0.85;">Skrining AI Terakhir</span>
+            </div>
+
+            <div class="score-display">
+              <span class="score-number" id="homeScoreNumber">88</span>
+              <span class="score-unit">/100</span>
+            </div>
+            <h3 class="score-summary-title">Kondisi Gigi Cukup Bersih</h3>
+            <p class="score-summary-desc" id="homeScoreDesc">
+              Email gigi bebas dari kavitas besar. Terus jaga kebersihan batas leher gusi anak secara rutin.
+            </p>
+
+            <div class="score-footer-stats">
+              <span>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                Terakhir diperiksa: <strong id="homeLastScanDate" style="margin-left: 4px;">10 Agustus 2026</strong>
+              </span>
+              <span style="color: #6ee7b7; font-weight: 700;">Posyandu Melati</span>
+            </div>
+          </div>
+
+          <!-- Hero Action Button: Start Dental Scan -->
+          <div class="hero-scan-banner" id="heroScanBanner">
+            <div class="hero-scan-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke-width="2">
+                <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
+                <circle cx="12" cy="13" r="4"/>
+              </svg>
+            </div>
+            <div class="hero-scan-text">
+              <h3>Mulai Pindai Gigi Anak</h3>
+              <p>Ambil foto mulut anak untuk deteksi karies instan berbasis AI</p>
+            </div>
+            <div class="hero-arrow">→</div>
+          </div>
+
+          <!-- Daily Toothbrushing Routine -->
+          <div class="section-title-row">
+            <h3 class="section-title">Rutinitas Sikat Gigi Hari Ini</h3>
+            <span class="section-link">Streak 4 Hari 🔥</span>
+          </div>
+
+          <div class="routine-card">
+            <div class="routine-info">
+              <div class="routine-icon">🪥</div>
+              <div class="routine-details">
+                <h4>Sikat Gigi Malam Hari</h4>
+                <p>Panduan 2 menit dengan lagu & timer</p>
+              </div>
+            </div>
+            <button class="routine-btn" id="btnStartBrushRoutine">Mulai</button>
+          </div>
+
+          <!-- Quick Nutrition Education Card -->
+          <div class="section-title-row" style="margin-top: 20px;">
+            <h3 class="section-title">Edukasi & Tips Posyandu</h3>
+          </div>
+          <div class="routine-card">
+            <div class="routine-info">
+              <div class="routine-icon">🍎</div>
+              <div class="routine-details">
+                <h4>Camilan Ramah Enamel Gigi</h4>
+                <p>Apel, wortel, dan keju membantu membersihkan sisa plak alami</p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ==========================================
+             SCREEN 2: SMART CAMERA SCANNER & PRESETS
+             ========================================== -->
+        <section class="screen" id="screen-scan">
+          <div class="scanner-top-bar">
+            <button class="btn-icon-pill btn-back-home" title="Kembali ke Beranda">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
+            </button>
+            <h3 class="scanner-title">Pemindaian Gigi Anak</h3>
+            <button class="btn-icon-pill" id="btnToggleLiveCamera" title="Aktifkan Kamera Langsung">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+            </button>
+          </div>
+
+          <!-- Camera Viewport Box with Viewfinder Overlay -->
+          <div class="scanner-viewport-box">
+            <!-- Simulated Dental Image -->
+            <img src="assets/case2_plaque.svg" alt="Citra Gigi Anak" id="scannerPreviewImg" class="scanner-preview-img">
+            
+            <!-- Optional Real Camera Video Element -->
+            <video id="scannerVideoStream" class="scanner-video-stream" autoplay playsinline style="display: none;"></video>
+
+            <!-- Laser Scanning Beam Effect -->
+            <div class="scanner-beam" id="scannerBeam"></div>
+
+            <!-- Viewfinder Oral Guideline Overlay -->
+            <div class="viewfinder-guideline">
+              <div class="guideline-tag">Posisikan Rongga Mulut di Dalam Bingkai</div>
+              <svg class="target-crosshair" viewBox="0 0 24 24" fill="none" stroke="#38bdf8" stroke-width="1.5">
+                <circle cx="12" cy="12" r="9"/>
+                <line x1="12" y1="3" x2="12" y2="7"/>
+                <line x1="12" y1="17" x2="12" y2="21"/>
+                <line x1="3" y1="12" x2="7" y2="12"/>
+                <line x1="17" y1="12" x2="21" y2="12"/>
+              </svg>
+              <div style="font-size: 0.65rem; color: #bae6fd; font-weight: 600; text-shadow: 0 1px 2px #000;">
+                Buka bibir anak perlahan hingga gigi seri & geraham terlihat
+              </div>
+            </div>
+          </div>
+
+          <!-- Preset Cases Selector (Sangat Penting untuk Pengujian & Demo Juri) -->
+          <div class="clinical-presets-box">
+            <div class="preset-header-text">
+              <span>Pilih Skenario Kasus Klinis (Demo Juri)</span>
+              <span class="preset-badge-demo">Preset AI</span>
+            </div>
+            <div class="preset-case-buttons">
+              <button class="btn-preset-case case-low" data-case="case1">
+                <span class="case-indicator-dot green"></span>
+                <span class="case-btn-label">Gigi Sehat</span>
+                <span class="case-btn-sub">Risiko Rendah</span>
+              </button>
+              <button class="btn-preset-case case-medium active" data-case="case2">
+                <span class="case-indicator-dot yellow"></span>
+                <span class="case-btn-label">Plak & Karies</span>
+                <span class="case-btn-sub">Risiko Sedang</span>
+              </button>
+              <button class="btn-preset-case case-high" data-case="case3">
+                <span class="case-indicator-dot red"></span>
+                <span class="case-btn-label">Berlubang</span>
+                <span class="case-btn-sub">Risiko Tinggi</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Hidden File Upload for Custom Images -->
+          <input type="file" id="scannerFileInput" accept="image/*" style="display: none;">
+
+          <!-- Scanner Controls -->
+          <div class="scanner-controls-row">
+            <button class="btn-scanner-action" id="btnUploadTrigger" title="Unggah Foto dari Galeri">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+            </button>
+
+            <!-- Big Shutter Button -->
+            <button class="btn-scanner-shutter" id="btnShutter" title="Ambil & Analisis Foto Gigi">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="9"/>
+                <circle cx="12" cy="12" r="5" fill="currentColor"/>
+              </svg>
+            </button>
+
+            <button class="btn-scanner-action" id="btnFlashToggle" title="Bantuan Lampu Flash">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+            </button>
+          </div>
+        </section>
+
+        <!-- ==========================================
+             SCREEN 3: HASIL DIAGNOSTIK AI & BOUNDING BOX
+             ========================================== -->
+        <section class="screen" id="screen-result">
+          <div class="scanner-top-bar">
+            <button class="btn-icon-pill btn-back-home" title="Kembali">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
+            </button>
+            <h3 class="scanner-title">Hasil Skrining AI</h3>
+            <span class="ai-confidence-pill" id="aiConfidenceBadge">Akurasi: 95.8%</span>
+          </div>
+
+          <!-- Risk Level Summary Card -->
+          <div class="result-header-card medium" id="resultHeaderCard">
+            <div class="result-risk-badge" id="resultRiskBadge">🟡</div>
+            <div class="result-risk-text">
+              <h2 id="resultRiskTitle">RISIKO SEDANG</h2>
+              <p id="resultRiskSub">Ditemukan bercak karies dini dan penumpukan plak di leher gigi.</p>
+            </div>
+          </div>
+
+          <!-- AI View Mode Switcher (Explainable AI Toggle) -->
+          <div class="view-mode-switcher">
+            <button class="btn-view-mode active" id="btnModeBBox">
+              <span>📦 Bounding Box</span>
+            </button>
+            <button class="btn-view-mode" id="btnModeHeatmap">
+              <span>🔥 Heatmap AI (Grad-CAM)</span>
+            </button>
+            <button class="btn-view-mode" id="btnModeOriginal">
+              <span>📷 Citra Asli</span>
+            </button>
+          </div>
+
+          <!-- Analyzed Image with Bounding Boxes & Heatmap Overlay -->
+          <div class="ai-preview-container">
+            <img src="assets/case2_plaque.svg" alt="Hasil Analisis AI" class="ai-preview-img" id="aiResultImg">
+            <!-- Explainable AI Heatmap Overlay -->
+            <img src="assets/heatmap_gradcam.svg" alt="Grad-CAM Heatmap" class="ai-heatmap-overlay" id="aiHeatmapOverlay">
+            <!-- Dynamic Bounding Boxes will be rendered here -->
+            <div id="boundingBoxContainer"></div>
+          </div>
+
+          <!-- WHO Clinical Dental Standard: def-t Index Card -->
+          <div class="deft-index-card">
+            <div>
+              <div style="font-size: 0.65rem; text-transform: uppercase; font-weight: 700; color: var(--text-muted); letter-spacing: 0.5px;">Indeks def-t Medis (Standar WHO)</div>
+              <div class="deft-score-box">
+                <span class="deft-score-value" id="deftScoreValue">1</span>
+                <span style="font-size: 0.75rem; font-weight: 700; color: var(--text-main);" id="deftStatusBadge">Karies Dini (WHO Kategori Rendah)</span>
+              </div>
+            </div>
+            <div class="deft-breakdown">
+              <span>d: <strong id="deftDVal">1</strong></span>
+              <span>e: <strong id="deftEVal">0</strong></span>
+              <span>f: <strong id="deftFVal">0</strong></span>
+            </div>
+          </div>
+
+          <!-- Pediatric Odontogram (FDI Two-Digit Notation: 20 Deciduous Teeth) -->
+          <div class="odontogram-section" style="margin-top: 14px;">
+            <div class="odontogram-header">
+              <h4>Odontogram Gigi Susu Anak (Notasi FDI)</h4>
+              <span style="font-size: 0.68rem; color: var(--primary); font-weight: 700;">20 Gigi Susu</span>
+            </div>
+            
+            <div class="odontogram-grid-container">
+              <!-- Upper Dental Arch: 55 to 65 -->
+              <div class="odontogram-arch-row" id="odontogramUpperArch">
+                <!-- Dynamically populated via JS -->
+              </div>
+              
+              <div class="arch-divider"></div>
+
+              <!-- Lower Dental Arch: 85 to 75 -->
+              <div class="odontogram-arch-row" id="odontogramLowerArch">
+                <!-- Dynamically populated via JS -->
+              </div>
+            </div>
+
+            <!-- Dynamic Tooth Detail Banner -->
+            <div class="tooth-detail-banner" id="toothDetailBanner">
+              <div>Klik salah satu nomor gigi di atas untuk melihat status klinis.</div>
+            </div>
+          </div>
+
+          <!-- AI Diagnostic Findings -->
+          <div class="findings-card">
+            <div class="findings-header">
+              <h4 style="font-size: 0.88rem; font-weight: 700;">Temuan Deteksi Komputer Vision</h4>
+              <span style="font-size: 0.7rem; color: var(--text-muted);">Pipeline Deep Learning</span>
+            </div>
+            <div id="aiFindingsList">
+              <!-- Dynamically populated via JS -->
+            </div>
+          </div>
+
+          <!-- Recommendations Card -->
+          <div class="findings-card">
+            <h4 style="font-size: 0.88rem; font-weight: 700; margin-bottom: 8px;">Rekomendasi Tindak Lanjut</h4>
+            <ul id="aiRecommendationsList" style="padding-left: 18px; color: var(--text-main);">
+              <!-- Dynamically populated via JS -->
+            </ul>
+          </div>
+
+          <!-- Action Buttons -->
+          <div class="result-actions">
+            <button class="btn-primary-action" id="btnGoToFaskes">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+              Cari Faskes / Rujukan Puskesmas
+            </button>
+            <button class="btn-secondary-action" id="btnSaveAndHome">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+              Simpan ke Riwayat & Kembali ke Beranda
+            </button>
+          </div>
+        </section>
+
+        <!-- ==========================================
+             SCREEN 4: EDUKASI & TIMER SIKAT GIGI 2 MENIT
+             ========================================== -->
+        <section class="screen" id="screen-edu">
+          <div class="scanner-top-bar">
+            <button class="btn-icon-pill btn-back-home" title="Kembali">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
+            </button>
+            <h3 class="scanner-title">Edukasi Sikat Gigi Anak</h3>
+            <div></div>
+          </div>
+
+          <!-- Interactive 2-Minute Toothbrushing Coach -->
+          <div class="timer-hero-container">
+            <div class="timer-circle-wrapper">
+              <svg class="timer-svg" viewBox="0 0 200 200">
+                <defs>
+                  <linearGradient id="timerGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" stop-color="#0284c7"/>
+                    <stop offset="100%" stop-color="#10b981"/>
+                  </linearGradient>
+                </defs>
+                <circle class="timer-bg-ring" cx="100" cy="100" r="85"/>
+                <circle class="timer-progress-ring" id="timerProgressRing" cx="100" cy="100" r="85"/>
+              </svg>
+              <div class="timer-inner-content">
+                <div class="timer-countdown" id="timerCountdown">02:00</div>
+                <div class="timer-step-label" id="timerStepLabel">Siap Mulai</div>
+              </div>
+            </div>
+
+            <!-- Quadrant Guide Notification -->
+            <div class="quadrant-indicator-card">
+              <span>🦷</span>
+              <span id="quadrantDesc">Tekan tombol mulai untuk memandu gerakan sikat gigi anak</span>
+            </div>
+
+            <!-- Timer Controls -->
+            <div class="timer-controls-row">
+              <button class="btn-timer-toggle" id="btnTimerToggle">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+                Mulai Sikat Gigi
+              </button>
+              <button class="btn-timer-reset" id="btnTimerReset">Reset</button>
+            </div>
+          </div>
+
+          <!-- Healthy Habits Guide Cards -->
+          <div class="section-title-row">
+            <h3 class="section-title">Panduan Gizi Ramah Gigi</h3>
+          </div>
+
+          <div class="edu-grid">
+            <div class="edu-card">
+              <div class="edu-icon-badge">🥛</div>
+              <h4>Kalsium & Susu</h4>
+              <p>Menguatkan email gigi susu. Hindari dot susu manis saat tidur malam.</p>
+            </div>
+            <div class="edu-card">
+              <div class="edu-icon-badge">🍭</div>
+              <h4>Waspada Makanan Lengket</h4>
+              <p>Permen gulali & cokelat lengket mudah diubah bakteri menjadi asam perusak.</p>
+            </div>
+            <div class="edu-card">
+              <div class="edu-icon-badge">💧</div>
+              <h4>Bilas Air Putih</h4>
+              <p>Biasakan anak berkumur air putih setelah makan makanan manis.</p>
+            </div>
+            <div class="edu-card">
+              <div class="edu-icon-badge">🪥</div>
+              <h4>Pasta Gigi Berfluoride</h4>
+              <p>Gunakan seukuran biji beras untuk balita di bawah usia 3 tahun.</p>
+            </div>
+          </div>
+        </section>
+
+        <!-- ==========================================
+             SCREEN 5: RUJUKAN FASKES & REKAM RIWAYAT
+             ========================================== -->
+        <section class="screen" id="screen-faskes">
+          <div class="scanner-top-bar">
+            <button class="btn-icon-pill btn-back-home" title="Kembali">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
+            </button>
+            <h3 class="scanner-title">Rujukan & Rekam Riwayat</h3>
+            <div></div>
+          </div>
+
+          <!-- Faskes Referral Header -->
+          <div class="faskes-banner">
+            <h3>Rujukan Layanan Kesehatan Terdekat</h3>
+            <p>Terhubung langsung dengan jaringan Posyandu & Poli Gigi Puskesmas wilayah Anda.</p>
+          </div>
+
+          <!-- Facilities List -->
+          <div class="faskes-card">
+            <div class="faskes-main-info">
+              <h4>Puskesmas Dayah Sehat</h4>
+              <p>Poli Gigi Anak • Buka Senin-Sabtu</p>
+              <span class="faskes-distance-badge">📍 1.2 km dari lokasi</span>
+            </div>
+            <button class="btn-referral-wa" data-faskes="Puskesmas Dayah Sehat">
+              <span>Rujuk WA</span>
+            </button>
+          </div>
+
+          <div class="faskes-card">
+            <div class="faskes-main-info">
+              <h4>Posyandu Melati Indah</h4>
+              <p>Kader Ibu Rahma • Jadwal Timbang Bulanan</p>
+              <span class="faskes-distance-badge">📍 450 m dari rumah</span>
+            </div>
+            <button class="btn-referral-wa" data-faskes="Posyandu Melati Indah">
+              <span>Rujuk WA</span>
+            </button>
+          </div>
+
+          <div class="faskes-card">
+            <div class="faskes-main-info">
+              <h4>RS Khusus Gigi & Mulut (RSGM)</h4>
+              <p>Dokter Gigi Spesialis Pedodonti (KGA)</p>
+              <span class="faskes-distance-badge">📍 4.8 km</span>
+            </div>
+            <button class="btn-referral-wa" data-faskes="RSGM Pendidikan">
+              <span>Rujuk WA</span>
+            </button>
+          </div>
+
+          <!-- Screening History Timeline -->
+          <div class="section-title-row" style="margin-top: 24px;">
+            <h3 class="section-title">Timeline Rekam Jejak Skrining</h3>
+            <span class="section-link">Terverifikasi</span>
+          </div>
+
+          <div class="timeline-container" id="timelineHistoryList">
+            <!-- Dynamically populated via JS -->
+          </div>
+        </section>
+
+      </div>
+
+      <!-- ==========================================
+           BOTTOM NAVIGATION BAR
+           ========================================== -->
+      <nav class="bottom-nav">
+        <button class="nav-item active" data-screen="screen-home">
+          <svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+          <span>Beranda</span>
+        </button>
+
+        <button class="nav-item" data-screen="screen-edu">
+          <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+          <span>Edukasi</span>
+        </button>
+
+        <!-- Floating Center Scanner Action -->
+        <button class="nav-item nav-scan-cta" data-screen="screen-scan" title="Pindai Gigi">
+          <svg viewBox="0 0 24 24"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+        </button>
+
+        <button class="nav-item" data-screen="screen-faskes">
+          <svg viewBox="0 0 24 24"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+          <span>Faskes</span>
+        </button>
+      </nav>
+    </div>
+  </main>
+
+  <!-- ==========================================
+       MODAL: DIGITAL REFERRAL TICKET
+       ========================================== -->
+  <div class="modal-overlay" id="modalReferralTicket">
+    <div class="modal-card">
+      <div class="modal-icon">🏥</div>
+      <h3>Tiket Rujukan Digital Dibuat</h3>
+      <p>Data hasil skrining AI berhasil dienkripsi dan disiapkan untuk koordinasi faskes lanjutan.</p>
+      
+      <div class="ticket-box">
+        <strong>NOMOR TIKET :</strong> <span id="ticketCode">REF-928172</span><br>
+        <strong>NAMA PASIEN :</strong> <span id="ticketPatientName">Ahmad Raihan (4 Th)</span><br>
+        <strong>TUJUAN      :</strong> <span id="ticketFaskesName">Puskesmas Dayah Sehat</span><br>
+        <strong>PRIORITAS   :</strong> Triage Otomatis SIGI-AI
+      </div>
+
+      <button class="btn-modal-close" id="btnCloseTicket">Selesai & Tutup</button>
+    </div>
+  </div>
+
+  <!-- ==========================================
+       MODAL: PRESENTATION / JURY GUIDE
+       ========================================== -->
+  <div class="modal-overlay" id="modalQuickGuide">
+    <div class="modal-card" style="max-width: 420px; text-align: left;">
+      <h3 style="text-align: center; margin-bottom: 12px;">🌟 Panduan Presentasi Prototype</h3>
+      <p style="margin-bottom: 12px; font-size: 0.8rem;">
+        Untuk mendemokan inovasi <strong>SIGI-AI</strong> di hadapan dewan juri:
+      </p>
+      <ol style="font-size: 0.78rem; padding-left: 18px; line-height: 1.5; margin-bottom: 16px;">
+        <li><strong>Buka Layar Scanner</strong>: Tekan tombol tengah kamera atau banner "Mulai Pindai Gigi".</li>
+        <li><strong>Uji Kasus Klinis</strong>: Pilih tombol preset (Kasus 1 Gigi Sehat, Kasus 2 Plak/Karies Awal, atau Kasus 3 Berlubang).</li>
+        <li><strong>Jalankan AI</strong>: Tekan tombol shutter lingkaran biru. Amati animasi radar AI dan Bounding Box hasil deteksi karies instan.</li>
+        <li><strong>Tunjukkan Fitur Rujukan</strong>: Tekan "Cari Faskes" untuk menerbitkan tiket rujukan faskes atau WhatsApp ke kader.</li>
+        <li><strong>Tunjukkan Timer Edukasi</strong>: Buka tab "Edukasi" untuk menunjukkan stopwatch interaktif 2 menit bersuara.</li>
+      </ol>
+      <button class="btn-modal-close" id="btnCloseGuide">Paham, Mulai Demo</button>
+    </div>
+  </div>
+
+  <script src="js/scanner.js"></script>
+  <script src="js/timer.js"></script>
+  <script src="js/app.js"></script>
+  
+  <!-- PWA Service Worker Registration & Install Prompt Handling -->
+  <script>
+    let deferredPrompt;
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('./service-worker.js')
+          .then(reg => console.log('PWA Service Worker registered:', reg.scope))
+          .catch(err => console.log('Service Worker registration failed:', err));
+      });
+    }
+
+    window.addEventListener('beforeinstallprompt', (e) => {
+      e.preventDefault();
+      deferredPrompt = e;
+      const installBtn = document.getElementById('btnInstallPwa');
+      if (installBtn) {
+        installBtn.style.display = 'flex';
+      }
+    });
+
+    const installBtn = document.getElementById('btnInstallPwa');
+    if (installBtn) {
+      installBtn.addEventListener('click', async () => {
+        if (deferredPrompt) {
+          deferredPrompt.prompt();
+          const { outcome } = await deferredPrompt.userChoice;
+          console.log('PWA install outcome:', outcome);
+          deferredPrompt = null;
+        } else {
+          alert('📱 Tips PWA: Jika membuka di Google Chrome (Android/Laptop), klik ikon "Install" di kanan address bar atau menu "Tambahkan ke Layar Utama" di HP Anda agar aplikasi terpasang di Home Screen!');
+        }
+      });
+    }
+  </script>
+</body>
+</html>

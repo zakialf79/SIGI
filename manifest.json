@@ -1,0 +1,19 @@
+{
+  "name": "SIGI-AI — Skrining Gigi Anak Berbasis AI",
+  "short_name": "SIGI-AI",
+  "description": "Aplikasi deteksi dini karies dan kesehatan gigi anak berbasis AI Computer Vision",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#0f172a",
+  "theme_color": "#0284c7",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "assets/logo.svg",
+      "sizes": "192x192 512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["health", "medical", "education"]
+}

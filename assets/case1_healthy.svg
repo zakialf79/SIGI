@@ -1,0 +1,74 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 450" width="100%" height="100%">
+  <defs>
+    <radialGradient id="oralCavity" cx="50%" cy="50%" r="60%">
+      <stop offset="0%" stop-color="#4a151b"/>
+      <stop offset="60%" stop-color="#2a0a0d"/>
+      <stop offset="100%" stop-color="#140305"/>
+    </radialGradient>
+    <linearGradient id="lipGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#d96b79"/>
+      <stop offset="50%" stop-color="#c94b5b"/>
+      <stop offset="100%" stop-color="#992837"/>
+    </linearGradient>
+    <linearGradient id="gumHealthy" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#ff8fa3"/>
+      <stop offset="100%" stop-color="#e06579"/>
+    </linearGradient>
+    <linearGradient id="toothWhite" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#ffffff"/>
+      <stop offset="70%" stop-color="#f4f7f6"/>
+      <stop offset="100%" stop-color="#e1ebe7"/>
+    </linearGradient>
+    <filter id="softGlow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="3" result="blur"/>
+      <feComposite in="SourceGraphic" in2="blur" operator="over"/>
+    </filter>
+  </defs>
+
+  <!-- Background / Oral Cavity Dark -->
+  <rect width="600" height="450" fill="url(#oralCavity)" rx="16"/>
+
+  <!-- Upper Gums Healthy -->
+  <path d="M 60,130 Q 300,80 540,130 Q 510,195 480,185 Q 420,180 360,180 Q 300,175 240,180 Q 180,180 120,185 Z" fill="url(#gumHealthy)" opacity="0.95"/>
+
+  <!-- Upper Teeth (Primary Incisors & Canines) -->
+  <!-- Molars Left -->
+  <rect x="100" y="160" width="38" height="45" rx="10" fill="url(#toothWhite)" stroke="#cbd5e1" stroke-width="2"/>
+  <rect x="145" y="155" width="42" height="50" rx="10" fill="url(#toothWhite)" stroke="#cbd5e1" stroke-width="2"/>
+  <!-- Canine Left -->
+  <path d="M 195,150 Q 215,145 235,150 L 230,210 Q 215,225 200,210 Z" fill="url(#toothWhite)" stroke="#cbd5e1" stroke-width="2"/>
+  <!-- Central Incisors Upper -->
+  <rect x="242" y="145" width="52" height="70" rx="12" fill="url(#toothWhite)" stroke="#cbd5e1" stroke-width="2"/>
+  <rect x="304" y="145" width="52" height="70" rx="12" fill="url(#toothWhite)" stroke="#cbd5e1" stroke-width="2"/>
+  <!-- Canine Right -->
+  <path d="M 365,150 Q 385,145 405,150 L 400,210 Q 385,225 370,210 Z" fill="url(#toothWhite)" stroke="#cbd5e1" stroke-width="2"/>
+  <!-- Molars Right -->
+  <rect x="413" y="155" width="42" height="50" rx="10" fill="url(#toothWhite)" stroke="#cbd5e1" stroke-width="2"/>
+  <rect x="462" y="160" width="38" height="45" rx="10" fill="url(#toothWhite)" stroke="#cbd5e1" stroke-width="2"/>
+
+  <!-- Lower Gums Healthy -->
+  <path d="M 70,330 Q 300,370 530,330 Q 500,270 450,280 Q 380,285 300,285 Q 220,285 150,280 Z" fill="url(#gumHealthy)" opacity="0.95"/>
+
+  <!-- Lower Teeth -->
+  <rect x="150" y="245" width="36" height="42" rx="8" fill="url(#toothWhite)" stroke="#cbd5e1" stroke-width="1.5"/>
+  <rect x="192" y="240" width="38" height="48" rx="8" fill="url(#toothWhite)" stroke="#cbd5e1" stroke-width="1.5"/>
+  <rect x="236" y="235" width="40" height="52" rx="9" fill="url(#toothWhite)" stroke="#cbd5e1" stroke-width="1.5"/>
+  <rect x="282" y="232" width="42" height="55" rx="9" fill="url(#toothWhite)" stroke="#cbd5e1" stroke-width="1.5"/>
+  <rect x="330" y="235" width="40" height="52" rx="9" fill="url(#toothWhite)" stroke="#cbd5e1" stroke-width="1.5"/>
+  <rect x="376" y="240" width="38" height="48" rx="8" fill="url(#toothWhite)" stroke="#cbd5e1" stroke-width="1.5"/>
+  <rect x="420" y="245" width="36" height="42" rx="8" fill="url(#toothWhite)" stroke="#cbd5e1" stroke-width="1.5"/>
+
+  <!-- Enamel shine highlights -->
+  <path d="M 252,155 Q 268,150 284,155 L 282,185 Q 268,180 254,185 Z" fill="#ffffff" opacity="0.7"/>
+  <path d="M 314,155 Q 330,150 346,155 L 344,185 Q 330,180 316,185 Z" fill="#ffffff" opacity="0.7"/>
+
+  <!-- Tongue / Deep Mouth -->
+  <path d="M 180,265 Q 300,250 420,265 Q 300,320 180,265 Z" fill="#b83849" opacity="0.85"/>
+
+  <!-- Watermark badge -->
+  <g transform="translate(20, 20)">
+    <rect width="180" height="32" rx="16" fill="#059669" opacity="0.9"/>
+    <circle cx="16" cy="16" r="6" fill="#34d399"/>
+    <text x="32" y="21" fill="#ffffff" font-family="'Plus Jakarta Sans', sans-serif" font-size="13" font-weight="bold">Kasus 1: Gigi Sehat</text>
+  </g>
+</svg>
