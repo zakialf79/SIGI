@@ -1,13 +1,14 @@
 /**
  * SIGI-AI Scanner & AI Computer Vision Simulation Engine
  * Handles image acquisition, preset clinical cases, bounding box detections, and risk evaluation.
+ * Revised: Only 2 cases — Gigi Sehat (Healthy) & Karies/Berlubang (Cavity)
  */
 
 const CLINICAL_CASES = {
   case1: {
     id: 'case1',
-    title: 'Kasus 1: Gigi Susu Sehat',
-    badgeText: 'Risiko Rendah',
+    title: 'Gigi Susu Sehat',
+    badgeText: 'Gigi Sehat',
     riskLevel: 'low',
     score: 96,
     imageSrc: 'assets/case1_healthy.svg',
@@ -26,7 +27,7 @@ const CLINICAL_CASES = {
       },
       {
         title: 'Kebersihan Mulut Optimal',
-        desc: 'Akumulasi plak minimal dan tidak terdapat kalkulus supragingiva.',
+        desc: 'Tidak terdapat tanda-tanda kerusakan atau kavitas pada permukaan gigi.',
         type: 'safe'
       }
     ],
@@ -42,52 +43,10 @@ const CLINICAL_CASES = {
       { x: 26, y: 35, w: 14, h: 18, label: 'Gingiva Normal (96%)', type: 'safe' }
     ]
   },
-  case2: {
-    id: 'case2',
-    title: 'Kasus 2: Plak Servikal & Karies Dini',
-    badgeText: 'Risiko Sedang',
-    riskLevel: 'medium',
-    score: 72,
-    imageSrc: 'assets/case2_plaque.svg',
-    summary: 'Terdeteksi akumulasi plak di leher gigi dan lesi demineralisasi awal (white spot lesion).',
-    confidence: '92.6%',
-    findings: [
-      {
-        title: 'Demineralisasi Enamel Dini (White Spot)',
-        desc: 'Tanda awal karies pada interdental gigi seri atas (gigi 51 & 61). Belum terjadi kavitas terbuka.',
-        type: 'warning'
-      },
-      {
-        title: 'Akumulasi Plak Servikal',
-        desc: 'Lapisan biofim kekuningan di dekat batas gusi gigi seri atas dan bawah.',
-        type: 'warning'
-      },
-      {
-        title: 'Gingivitis Ringan',
-        desc: 'Tepi gusi tampak sedikit kemerahan akibat iritasi plak bakteri.',
-        type: 'warning'
-      }
-    ],
-    recommendations: [
-      'Tingkatkan teknik sikat gigi dengan gerakan melingkar lembut di garis batas gusi.',
-      'Aplikasikan pasta gigi berfluoride minimal 1000 ppm secara teratur untuk remineralisasi email.',
-      'Kurangi konsumsi camilan manis lengket dan susu botol menjelang tidur.',
-      'Konsultasikan ke Puskesmas/Dokter Gigi dalam 14 hari untuk pertimbangan aplikasi Topical Fluoride Varnish.'
-    ],
-    deftIndex: { d: 1, e: 0, f: 0, total: 1, status: 'Karies Dini (WHO Kategori Rendah)' },
-    odontogram: {
-      '51': { status: 'warning', note: 'Karies Dini (Demineralisasi Email)' },
-      '61': { status: 'warning', note: 'Bercak Putih Interdental' }
-    },
-    boundingBoxes: [
-      { x: 44, y: 36, w: 14, h: 12, label: 'Karies Dini Interdental (92%)', type: 'warning' },
-      { x: 38, y: 31, w: 22, h: 8, label: 'Biofilm Plak Servikal (94%)', type: 'warning' }
-    ]
-  },
   case3: {
     id: 'case3',
-    title: 'Kasus 3: Karies Gigi Berlubang & Gingivitis',
-    badgeText: 'Risiko Tinggi',
+    title: 'Karies Gigi Berlubang',
+    badgeText: 'Karies (Berlubang)',
     riskLevel: 'high',
     score: 41,
     imageSrc: 'assets/case3_caries.svg',
@@ -129,7 +88,7 @@ const CLINICAL_CASES = {
   }
 };
 
-let currentSelectedCase = 'case2'; // Default to medium risk demonstration
+let currentSelectedCase = 'case1'; // Default to healthy
 let cameraStream = null;
 let isCameraActive = false;
 
@@ -226,7 +185,9 @@ async function startLiveCamera() {
     if (toggleCameraBtn) toggleCameraBtn.style.color = 'var(--primary)';
   } catch (err) {
     console.warn('Camera access not granted or not available, using high-res clinical simulation:', err);
-    alert('Kamera fisik tidak terdeteksi atau izin belum diberikan. Prototipe otomatis beralih ke Mode Simulasi Citra Klinis.');
+    if (window.showToast) {
+      showToast('Kamera tidak terdeteksi. Beralih ke Mode Simulasi Klinis.', 'info');
+    }
     stopLiveCamera();
   }
 }
@@ -282,7 +243,7 @@ function runAIScanSimulation() {
  * Render Results Screen with Bounding Boxes and Triaging
  */
 function populateAndShowResults(caseKey) {
-  const caseData = CLINICAL_CASES[caseKey] || CLINICAL_CASES.case2;
+  const caseData = CLINICAL_CASES[caseKey] || CLINICAL_CASES.case1;
   
   // Set images and result header
   const resultCard = document.getElementById('resultHeaderCard');
@@ -306,8 +267,6 @@ function populateAndShowResults(caseKey) {
 
   if (caseData.riskLevel === 'low') {
     riskBadge.textContent = '🟢';
-  } else if (caseData.riskLevel === 'medium') {
-    riskBadge.textContent = '🟡';
   } else {
     riskBadge.textContent = '🔴';
   }
@@ -571,12 +530,10 @@ function analyzeCustomUploadedImage(imgDataUrl) {
     const redRatio = (redInflamedPixels / totalSamples) * 100;
 
     let computedCase;
-    if (darkRatio > 5.0 || redRatio > 8.0) {
-      computedCase = 'case3'; // High risk
-    } else if (darkRatio > 1.5 || redRatio > 3.0) {
-      computedCase = 'case2'; // Medium risk
+    if (darkRatio > 3.0 || redRatio > 5.0) {
+      computedCase = 'case3'; // High risk - Karies
     } else {
-      computedCase = 'case1'; // Low risk
+      computedCase = 'case1'; // Low risk - Gigi Sehat
     }
 
     currentSelectedCase = computedCase;

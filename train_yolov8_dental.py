@@ -21,6 +21,7 @@ import os
 
 def main():
     print("=== [1/4] Menginisialisasi Model YOLOv8-Dental ===")
+    # pyrefly: ignore[missing-import]
     from ultralytics import YOLO
 
     # Menggunakan YOLOv8-Nano (Transfer Learning) agar ringan untuk smartphone/browser

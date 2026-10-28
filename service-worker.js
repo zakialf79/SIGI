@@ -1,15 +1,14 @@
-const CACHE_NAME = 'sigi-ai-v1';
+const CACHE_NAME = 'sigi-ai-v2';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',
   './css/style.css',
   './js/app.js',
   './js/scanner.js',
-  './js/timer.js',
   './assets/logo.svg',
   './assets/case1_healthy.svg',
-  './assets/case2_plaque.svg',
   './assets/case3_caries.svg',
+  './assets/heatmap_gradcam.svg',
   './manifest.json'
 ];
 
