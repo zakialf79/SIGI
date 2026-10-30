@@ -20,7 +20,25 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   
-  <link rel="stylesheet" href="css/style.css?v=4.0">
+  <link rel="stylesheet" href="css/style.css?v=5.0">
+
+  <!-- Anti-Cache & Auto-Purge Service Worker to guarantee fresh code -->
+  <script>
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.getRegistrations().then(function(registrations) {
+        for (let reg of registrations) {
+          reg.unregister();
+        }
+      });
+    }
+    if ('caches' in window) {
+      caches.keys().then(function(names) {
+        for (let name of names) {
+          caches.delete(name);
+        }
+      });
+    }
+  </script>
 </head>
 <body>
 
@@ -216,12 +234,23 @@
           </div>
 
           <!-- Camera Viewport Box with Viewfinder Overlay -->
-          <div class="scanner-viewport-box">
-            <!-- Simulated Dental Image -->
-            <img src="assets/case1_healthy.svg" alt="Citra Gigi Anak" id="scannerPreviewImg" class="scanner-preview-img">
+          <div class="scanner-viewport-box" id="scannerViewportBox">
+            <!-- Real Captured Image / Preset Preview -->
+            <img src="" alt="Citra Gigi Anak" id="scannerPreviewImg" class="scanner-preview-img" style="display: none;">
             
-            <!-- Optional Real Camera Video Element -->
-            <video id="scannerVideoStream" class="scanner-video-stream" autoplay playsinline style="display: none;"></video>
+            <!-- Live Camera Video Element -->
+            <video id="scannerVideoStream" class="scanner-video-stream" autoplay playsinline muted style="display: none;"></video>
+
+            <!-- Live Camera Prompt (shown when camera is ready to shoot) -->
+            <div id="scannerLivePrompt" class="scanner-live-prompt">
+              <div class="scanner-live-prompt-icon">
+                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+              </div>
+              <div style="font-size: 0.88rem; font-weight: 700; color: #ffffff;">Kamera Web & HP Siap Digunakan</div>
+              <div style="font-size: 0.72rem; color: #bae6fd; margin-top: 4px; max-width: 240px; line-height: 1.4;">
+                Tekan tombol bulat shutter di bawah atau ikon kamera untuk memotret rongga mulut anak
+              </div>
+            </div>
 
             <!-- Laser Scanning Beam Effect -->
             <div class="scanner-beam" id="scannerBeam"></div>
@@ -323,7 +352,7 @@
 
           <!-- Analyzed Image with Bounding Boxes & Heatmap Overlay -->
           <div class="ai-preview-container">
-            <img src="assets/case1_healthy.svg" alt="Hasil Analisis AI" class="ai-preview-img" id="aiResultImg">
+            <img src="" alt="Hasil Analisis AI" class="ai-preview-img" id="aiResultImg">
             <!-- Explainable AI Heatmap Overlay -->
             <img src="assets/heatmap_gradcam.svg" alt="Grad-CAM Heatmap" class="ai-heatmap-overlay" id="aiHeatmapOverlay">
             <!-- Dynamic Bounding Boxes will be rendered here -->
@@ -557,8 +586,8 @@
     </div>
   </div>
 
-  <script src="js/scanner.js?v=4.0"></script>
-  <script src="js/app.js?v=4.0"></script>
+  <script src="js/scanner.js?v=5.0"></script>
+  <script src="js/app.js?v=5.0"></script>
   
   <!-- PWA Service Worker Registration & Install Prompt Handling -->
   <script>

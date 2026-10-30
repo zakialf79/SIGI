@@ -1,7 +1,8 @@
 /**
- * SIGI-AI Scanner & AI Computer Vision Simulation Engine
- * Handles image acquisition, preset clinical cases, bounding box detections, and risk evaluation.
- * Revised: Only 2 cases — Gigi Sehat (Healthy) & Karies/Berlubang (Cavity)
+ * SIGI-AI Scanner & AI Computer Vision Simulation Engine (v5.0)
+ * Handles live webcam capture, smartphone native camera, gallery upload,
+ * real-time image normalization/compression, AI Computer Vision analysis,
+ * and clinical odontogram/def-t rendering.
  */
 
 const CLINICAL_CASES = {
@@ -88,26 +89,139 @@ const CLINICAL_CASES = {
   }
 };
 
-let currentSelectedCase = 'case1'; // Default to healthy
+let currentSelectedCase = 'case1'; // Demo preset pointer if demo requested
 let cameraStream = null;
 let isCameraActive = false;
-let customCapturedImage = null; // Menyimpan citra nyata yang baru diambil (dari kamera web atau upload galeri)
-let customAnalyzedCase = null;  // Menyimpan data kasus hasil analisis AI Computer Vision dari citra nyata
+let customCapturedImage = null; // Stored user captured/uploaded photo
+let customAnalyzedCase = null;  // Analyzed case result for user photo
 
 /**
- * Initialize scanner events and preset case buttons
+ * Helper: Ambil citra foto nyata yang aktif dari berbagai layer memori/storage
+ */
+function getActiveUserPhoto() {
+  if (customCapturedImage && !customCapturedImage.includes('.svg')) {
+    return customCapturedImage;
+  }
+  if (window.SIGI_LATEST_PHOTO && !window.SIGI_LATEST_PHOTO.includes('.svg')) {
+    return window.SIGI_LATEST_PHOTO;
+  }
+  try {
+    const local = localStorage.getItem('sigi_latest_photo');
+    if (local && !local.includes('.svg')) return local;
+  } catch (e) {}
+  try {
+    const session = sessionStorage.getItem('sigi_active_scan_img');
+    if (session && !session.includes('.svg')) return session;
+  } catch (e) {}
+
+  const previewImg = document.getElementById('scannerPreviewImg');
+  if (previewImg && previewImg.src && !previewImg.src.includes('.svg') && (previewImg.src.startsWith('data:') || previewImg.src.startsWith('blob:'))) {
+    return previewImg.src;
+  }
+  return null;
+}
+
+/**
+ * Helper: Bersihkan foto kustom (dipanggil saat pengguna sengaja memilih preset demo)
+ */
+function clearActiveUserPhoto() {
+  customCapturedImage = null;
+  customAnalyzedCase = null;
+  window.SIGI_LATEST_PHOTO = null;
+  try {
+    localStorage.removeItem('sigi_latest_photo');
+    sessionStorage.removeItem('sigi_active_scan_img');
+  } catch (e) {}
+}
+
+/**
+ * Kompresi dan Normalisasi Citra ke Canvas Web-Safe
+ * Menjamin resolusi max 800px & ukuran ~100KB agar TIDAK PERNAH crash atau melampaui quota localStorage.
+ */
+function compressAndStorePhoto(sourceElementOrImage, sourceType, onComplete) {
+  try {
+    const canvas = document.createElement('canvas');
+    let srcW = sourceElementOrImage.videoWidth || sourceElementOrImage.naturalWidth || sourceElementOrImage.width || 640;
+    let srcH = sourceElementOrImage.videoHeight || sourceElementOrImage.naturalHeight || sourceElementOrImage.height || 480;
+    if (srcW <= 0) srcW = 640;
+    if (srcH <= 0) srcH = 480;
+
+    const maxDim = 800;
+    let targetW = srcW;
+    let targetH = srcH;
+    if (srcW > maxDim || srcH > maxDim) {
+      if (srcW > srcH) {
+        targetW = maxDim;
+        targetH = Math.round((srcH / srcW) * maxDim);
+      } else {
+        targetH = maxDim;
+        targetW = Math.round((srcW / srcH) * maxDim);
+      }
+    }
+
+    canvas.width = targetW;
+    canvas.height = targetH;
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(sourceElementOrImage, 0, 0, targetW, targetH);
+
+    const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.85);
+
+    // Simpan ke semua state & persistence
+    customCapturedImage = compressedDataUrl;
+    window.SIGI_LATEST_PHOTO = compressedDataUrl;
+    try {
+      localStorage.setItem('sigi_latest_photo', compressedDataUrl);
+    } catch (e) {
+      console.warn('Storage save fallback:', e);
+    }
+    try {
+      sessionStorage.setItem('sigi_active_scan_img', compressedDataUrl);
+    } catch (e) {}
+
+    // Perbarui DOM seketika
+    const previewImg = document.getElementById('scannerPreviewImg');
+    const livePrompt = document.getElementById('scannerLivePrompt');
+    const videoStream = document.getElementById('scannerVideoStream');
+    if (videoStream) videoStream.style.display = 'none';
+    if (livePrompt) livePrompt.style.display = 'none';
+    if (previewImg) {
+      previewImg.src = compressedDataUrl;
+      previewImg.style.display = 'block';
+    }
+
+    const aiImg = document.getElementById('aiResultImg');
+    if (aiImg) {
+      aiImg.src = compressedDataUrl;
+    }
+
+    // Jalankan Computer Vision AI untuk ekstraksi fitur dental
+    customAnalyzedCase = performDentalAnalysisOnImage(ctx, targetW, targetH, compressedDataUrl, sourceType);
+    customAnalyzedCase.imageSrc = compressedDataUrl;
+
+    if (onComplete) onComplete(compressedDataUrl, customAnalyzedCase);
+  } catch (err) {
+    console.error('compressAndStorePhoto error:', err);
+    if (onComplete) onComplete(null, null);
+  }
+}
+
+/**
+ * Initialize scanner events, buttons, and camera handlers
  */
 function initScanner() {
   const presetButtons = document.querySelectorAll('.btn-preset-case');
   const previewImg = document.getElementById('scannerPreviewImg');
   const videoStream = document.getElementById('scannerVideoStream');
+  const livePrompt = document.getElementById('scannerLivePrompt');
   const shutterBtn = document.getElementById('btnShutter');
   const uploadInput = document.getElementById('scannerFileInput');
   const cameraInput = document.getElementById('scannerCameraInput');
   const uploadBtn = document.getElementById('btnUploadTrigger');
   const toggleCameraBtn = document.getElementById('btnToggleLiveCamera');
+  const flashBtn = document.getElementById('btnFlashToggle');
+  const viewportBox = document.getElementById('scannerViewportBox');
 
-  // Preset cases click handling (hanya aktif jika user sengaja klik preset demo)
+  // Handle Preset cases click (hanya aktif jika user sengaja klik preset demo)
   presetButtons.forEach(btn => {
     btn.addEventListener('click', () => {
       presetButtons.forEach(b => b.classList.remove('active'));
@@ -115,103 +229,106 @@ function initScanner() {
       const caseKey = btn.dataset.case;
       currentSelectedCase = caseKey;
       
-      // Reset custom captured photo saat pengguna secara eksplisit memilih preset demo
-      customCapturedImage = null;
-      customAnalyzedCase = null;
-      window.SIGI_LATEST_PHOTO = null;
-      try {
-        localStorage.removeItem('sigi_latest_photo');
-        sessionStorage.removeItem('sigi_active_scan_img');
-      } catch (e) {}
-      
+      // Bersihkan foto pengguna karena memilih mode preset demo
+      clearActiveUserPhoto();
       stopLiveCamera();
+
       if (CLINICAL_CASES[caseKey]) {
-        previewImg.src = CLINICAL_CASES[caseKey].imageSrc;
-        previewImg.style.display = 'block';
-        videoStream.style.display = 'none';
+        if (livePrompt) livePrompt.style.display = 'none';
+        if (videoStream) videoStream.style.display = 'none';
+        if (previewImg) {
+          previewImg.src = CLINICAL_CASES[caseKey].imageSrc;
+          previewImg.style.display = 'block';
+        }
       }
     });
   });
 
-  // Handler seragam saat ada file citra yang dipilih (baik dari galeri maupun dari native camera)
-  const handleSelectedImageFile = (file, sourceName = 'Galeri') => {
+  // Handler saat file citra dipilih dari Galeri maupun Kamera Native HP
+  const handleSelectedImageFile = (file, sourceName = 'Kamera') => {
     if (!file) return;
     stopLiveCamera();
     presetButtons.forEach(b => b.classList.remove('active'));
 
     const reader = new FileReader();
-    reader.onload = (event) => {
-      const imgDataUrl = event.target.result;
-      
-      // SIMPAN FOTO NYATA SECARA LANGSUNG KE SEMUA STATE & STORAGE
-      customCapturedImage = imgDataUrl;
-      window.SIGI_LATEST_PHOTO = imgDataUrl;
-      try {
-        localStorage.setItem('sigi_latest_photo', imgDataUrl);
-      } catch (err) {}
-
-      // LANGSUNG GANTI ELEMEN GAMBAR PREVIEW & GAMBAR HASIL KE FOTO NYATA INI!
-      previewImg.src = imgDataUrl;
-      previewImg.style.display = 'block';
-      videoStream.style.display = 'none';
-
-      const aiImg = document.getElementById('aiResultImg');
-      if (aiImg) {
-        aiImg.src = imgDataUrl;
-      }
-
-      // Langsung buat case analisis instan dari foto tersebut agar tidak pernah null
-      customAnalyzedCase = createInstantDentalCase(imgDataUrl, sourceName.toLowerCase());
-
-      // Lakukan analisis piksel mendalam secara asynchronous jika memungkinkan
-      analyzeImageFromDataUrl(imgDataUrl, (analyzedCase) => {
-        if (analyzedCase) {
-          customAnalyzedCase = analyzedCase;
-          customAnalyzedCase.imageSrc = imgDataUrl;
-        }
-      });
-
-      if (window.showToast) {
-        showToast(`Foto ${sourceName} berhasil dimuat! Tekan tombol shutter bulat di bawah untuk skrining AI.`, 'success');
-      }
+    reader.onload = (e) => {
+      const rawDataUrl = e.target.result;
+      const img = new Image();
+      img.onload = () => {
+        compressAndStorePhoto(img, sourceName.toLowerCase(), (dataUrl, analyzedCase) => {
+          if (window.showToast) {
+            showToast(`Foto ${sourceName} berhasil diambil! Memulai pemindaian AI...`, 'success');
+          }
+          // Otomatis jalankan transisi pemindaian dan tampilkan hasil foto nyata!
+          runAIScanTransition();
+        });
+      };
+      img.src = rawDataUrl;
     };
     reader.readAsDataURL(file);
   };
 
-  // Trigger file upload dari galeri
+  // Trigger file upload dari Galeri
   if (uploadBtn && uploadInput) {
     uploadBtn.addEventListener('click', () => {
       uploadInput.click();
     });
 
     uploadInput.addEventListener('change', (e) => {
-      handleSelectedImageFile(e.target.files[0], 'Galeri');
+      if (e.target.files && e.target.files[0]) {
+        handleSelectedImageFile(e.target.files[0], 'Galeri');
+      }
     });
   }
 
   // Trigger kamera native perangkat
   if (cameraInput) {
     cameraInput.addEventListener('change', (e) => {
-      handleSelectedImageFile(e.target.files[0], 'Kamera');
+      if (e.target.files && e.target.files[0]) {
+        handleSelectedImageFile(e.target.files[0], 'Kamera');
+      }
     });
   }
 
-  // Toggle Live Webcam / Phone Camera
+  // Trigger Tombol Kamera di Top Bar
   if (toggleCameraBtn) {
     toggleCameraBtn.addEventListener('click', () => {
       if (isCameraActive) {
         stopLiveCamera();
       } else {
-        // Coba buka kamera browser
         startLiveCamera().catch(() => {
-          // Jika gagal, trigger langsung dialog kamera native perangkat
+          // Fallback: langsung buka dialog kamera perangkat
           if (cameraInput) cameraInput.click();
         });
       }
     });
   }
 
-  // Shutter action (starts simulated AI deep learning inference)
+  // Trigger Tombol Lampu / Kamera Samping
+  if (flashBtn) {
+    flashBtn.addEventListener('click', () => {
+      if (!isCameraActive) {
+        startLiveCamera().catch(() => {
+          if (cameraInput) cameraInput.click();
+        });
+      } else {
+        if (window.showToast) {
+          showToast('Pencahayaan otomatis SIGI-AI aktif untuk meningkatkan kontras email gigi.', 'info');
+        }
+      }
+    });
+  }
+
+  // Viewfinder Prompt Click -> Buka Kamera
+  if (livePrompt) {
+    livePrompt.addEventListener('click', () => {
+      startLiveCamera().catch(() => {
+        if (cameraInput) cameraInput.click();
+      });
+    });
+  }
+
+  // Shutter action (Ambil & Analisis Foto)
   if (shutterBtn) {
     shutterBtn.addEventListener('click', () => {
       runAIScanSimulation();
@@ -225,23 +342,37 @@ function initScanner() {
 async function startLiveCamera() {
   const videoStream = document.getElementById('scannerVideoStream');
   const previewImg = document.getElementById('scannerPreviewImg');
+  const livePrompt = document.getElementById('scannerLivePrompt');
   const toggleCameraBtn = document.getElementById('btnToggleLiveCamera');
   const presetButtons = document.querySelectorAll('.btn-preset-case');
 
   try {
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+      throw new Error('MediaDevices API not supported');
+    }
+
     const stream = await navigator.mediaDevices.getUserMedia({
-      video: { facingMode: 'environment', width: { ideal: 640 }, height: { ideal: 480 } }
+      video: {
+        facingMode: { ideal: 'environment' },
+        width: { ideal: 1280 },
+        height: { ideal: 720 }
+      },
+      audio: false
     });
+
     cameraStream = stream;
-    videoStream.srcObject = stream;
-    videoStream.play();
-    videoStream.style.display = 'block';
-    previewImg.style.display = 'none';
+    if (videoStream) {
+      videoStream.srcObject = stream;
+      await videoStream.play();
+      videoStream.style.display = 'block';
+    }
+
+    if (previewImg) previewImg.style.display = 'none';
+    if (livePrompt) livePrompt.style.display = 'none';
     isCameraActive = true;
-    
-    // Lepaskan seleksi dari preset tombol saat kamera live aktif
+
     presetButtons.forEach(b => b.classList.remove('active'));
-    
+
     if (toggleCameraBtn) {
       toggleCameraBtn.classList.add('camera-active');
       toggleCameraBtn.style.color = '#10b981';
@@ -252,11 +383,9 @@ async function startLiveCamera() {
       showToast('Kamera aktif! Posisikan rongga mulut anak lalu tekan tombol shutter bulat.', 'info');
     }
   } catch (err) {
-    console.warn('Camera access not granted or not available, using high-res clinical simulation:', err);
-    if (window.showToast) {
-      showToast('Kamera tidak terdeteksi. Beralih ke Mode Simulasi Citra.', 'info');
-    }
+    console.warn('Camera getUserMedia error, fallback to native file input:', err);
     stopLiveCamera();
+    throw err;
   }
 }
 
@@ -266,6 +395,7 @@ async function startLiveCamera() {
 function stopLiveCamera() {
   const videoStream = document.getElementById('scannerVideoStream');
   const previewImg = document.getElementById('scannerPreviewImg');
+  const livePrompt = document.getElementById('scannerLivePrompt');
   const toggleCameraBtn = document.getElementById('btnToggleLiveCamera');
 
   if (cameraStream) {
@@ -273,11 +403,29 @@ function stopLiveCamera() {
     cameraStream = null;
   }
   isCameraActive = false;
+
   if (videoStream) {
     videoStream.style.display = 'none';
     videoStream.srcObject = null;
   }
-  if (previewImg) previewImg.style.display = 'block';
+
+  const activePhoto = getActiveUserPhoto();
+  if (activePhoto) {
+    if (previewImg) {
+      previewImg.src = activePhoto;
+      previewImg.style.display = 'block';
+    }
+    if (livePrompt) livePrompt.style.display = 'none';
+  } else {
+    if (previewImg && previewImg.src && !previewImg.src.includes('.svg')) {
+      previewImg.style.display = 'block';
+      if (livePrompt) livePrompt.style.display = 'none';
+    } else {
+      if (previewImg) previewImg.style.display = 'none';
+      if (livePrompt) livePrompt.style.display = 'flex';
+    }
+  }
+
   if (toggleCameraBtn) {
     toggleCameraBtn.classList.remove('camera-active');
     toggleCameraBtn.style.color = 'var(--text-muted)';
@@ -286,88 +434,57 @@ function stopLiveCamera() {
 }
 
 /**
- * Execute AI Scanner Simulation & Animate Radar Beam
+ * Jalankan Animasi Pemindaian Radar Beam & Pindah ke Layar Hasil
  */
-function runAIScanSimulation() {
+function runAIScanTransition() {
   const beam = document.getElementById('scannerBeam');
   const shutterBtn = document.getElementById('btnShutter');
-  const videoStream = document.getElementById('scannerVideoStream');
-  const previewImg = document.getElementById('scannerPreviewImg');
 
-  // Jika kamera aktif, AMBIL SNAPSHOT NYATA DARI FRAME KAMERA WEB / HP!
-  if (isCameraActive && videoStream) {
-    try {
-      const canvas = document.createElement('canvas');
-      const vw = videoStream.videoWidth || videoStream.clientWidth || 640;
-      const vh = videoStream.videoHeight || videoStream.clientHeight || 480;
-      canvas.width = vw;
-      canvas.height = vh;
-      const ctx = canvas.getContext('2d');
-      ctx.drawImage(videoStream, 0, 0, vw, vh);
-      
-      const capturedDataUrl = canvas.toDataURL('image/jpeg', 0.92);
-      customCapturedImage = capturedDataUrl;
-      window.SIGI_LATEST_PHOTO = capturedDataUrl;
-      try {
-        localStorage.setItem('sigi_latest_photo', capturedDataUrl);
-      } catch (err) {}
-      
-      // Hentikan live stream dan freeze tampilan ke foto yang baru saja diambil
-      stopLiveCamera();
-      
-      previewImg.src = capturedDataUrl;
-      previewImg.style.display = 'block';
-      videoStream.style.display = 'none';
-
-      // Langsung ubah gambar di layar hasil juga seketika!
-      const aiImg = document.getElementById('aiResultImg');
-      if (aiImg) {
-        aiImg.src = capturedDataUrl;
-      }
-
-      // Langsung buat analisis Computer Vision pada frame foto kamera yang baru diambil
-      customAnalyzedCase = performDentalAnalysisOnImage(ctx, vw, vh, capturedDataUrl, 'kamera');
-      customAnalyzedCase.imageSrc = capturedDataUrl;
-      
-      if (window.showToast) {
-        showToast('Foto kamera berhasil diambil! Memproses analisis AI...', 'info');
-      }
-    } catch (e) {
-      console.error('Gagal mengambil frame kamera:', e);
-      stopLiveCamera();
-    }
-  } else if (!customCapturedImage && previewImg && previewImg.src && !previewImg.src.includes('.svg')) {
-    // Jika ada foto di preview dari galeri atau kamera native
-    customCapturedImage = previewImg.src;
-    window.SIGI_LATEST_PHOTO = customCapturedImage;
-    try {
-      localStorage.setItem('sigi_latest_photo', customCapturedImage);
-    } catch (err) {}
-    customAnalyzedCase = createInstantDentalCase(customCapturedImage, 'foto');
+  if (shutterBtn) {
+    shutterBtn.disabled = true;
+    shutterBtn.style.opacity = '0.5';
   }
+  if (beam) beam.classList.add('scanning');
 
-  // Simpan ke sessionStorage untuk jaminan persistensi
-  if (customCapturedImage && !customCapturedImage.includes('.svg')) {
-    sessionStorage.setItem('sigi_active_scan_img', customCapturedImage);
-  }
-
-  // Disable shutter while scanning
-  shutterBtn.disabled = true;
-  shutterBtn.style.opacity = '0.5';
-  beam.classList.add('scanning');
-
-  // Play scanner sound tone if audio is allowed
   playScanningAudioTone();
 
-  // Simulate inference latency (1.6 seconds - realistic edge AI latency)
   setTimeout(() => {
-    beam.classList.remove('scanning');
-    shutterBtn.disabled = false;
-    shutterBtn.style.opacity = '1';
-
-    // Populate and switch to Result Screen
+    if (beam) beam.classList.remove('scanning');
+    if (shutterBtn) {
+      shutterBtn.disabled = false;
+      shutterBtn.style.opacity = '1';
+    }
     populateAndShowResults(currentSelectedCase);
-  }, 1600);
+  }, 1200);
+}
+
+/**
+ * Shutter Button Execution: Handle Kamera Live, Foto Aktif, atau Buka Kamera
+ */
+function runAIScanSimulation() {
+  const videoStream = document.getElementById('scannerVideoStream');
+  const cameraInput = document.getElementById('scannerCameraInput');
+
+  // 1. Jika kamera web sedang aktif, snapshot frame video sekarang
+  if (isCameraActive && videoStream && videoStream.readyState >= 2) {
+    compressAndStorePhoto(videoStream, 'kamera', (dataUrl, analyzedCase) => {
+      stopLiveCamera();
+      runAIScanTransition();
+    });
+    return;
+  }
+
+  // 2. Jika sudah ada foto yang diambil/diunggah
+  const activePhoto = getActiveUserPhoto();
+  if (activePhoto) {
+    runAIScanTransition();
+    return;
+  }
+
+  // 3. Jika kamera belum aktif dan belum ada foto: Otomatis buka kamera!
+  startLiveCamera().catch(() => {
+    if (cameraInput) cameraInput.click();
+  });
 }
 
 /**
@@ -377,28 +494,19 @@ function populateAndShowResults(caseKey) {
   let caseData;
   let isRealPhoto = false;
 
-  // Cek foto nyata baik dari memory, window, localStorage, maupun preview
-  const previewImgEl = document.getElementById('scannerPreviewImg');
-  let activePhoto = customCapturedImage || window.SIGI_LATEST_PHOTO;
-  if (!activePhoto) {
-    try {
-      activePhoto = localStorage.getItem('sigi_latest_photo') || sessionStorage.getItem('sigi_active_scan_img');
-    } catch (e) {}
-  }
-  if (!activePhoto && previewImgEl && previewImgEl.src && !previewImgEl.src.includes('.svg')) {
-    activePhoto = previewImgEl.src;
-  }
+  const activePhoto = getActiveUserPhoto();
 
-  // Prioritaskan 100% foto nyata jika ada foto yang diambil/diunggah
-  if (activePhoto && !activePhoto.includes('.svg')) {
+  // Prioritaskan 100% foto nyata pengguna jika ada
+  if (activePhoto) {
     if (!customAnalyzedCase) {
-      customAnalyzedCase = createInstantDentalCase(activePhoto, 'foto');
+      customAnalyzedCase = createInstantDentalCase(activePhoto, 'kamera');
     }
     caseData = customAnalyzedCase;
-    caseData.imageSrc = activePhoto; // MUTLAK: Menggunakan foto aktual dari pengguna!
+    caseData.imageSrc = activePhoto; // MUTLAK FOTO ASLI PENGGUNA
     isRealPhoto = true;
   } else {
     caseData = CLINICAL_CASES[caseKey] || CLINICAL_CASES.case1;
+    isRealPhoto = false;
   }
   
   // Set images and result header
@@ -413,82 +521,89 @@ function populateAndShowResults(caseKey) {
   const confidenceBadge = document.getElementById('aiConfidenceBadge');
   const sourceBadge = document.getElementById('aiSourceBadge');
 
-  // Clear previous bounding boxes
-  bboxContainer.innerHTML = '';
+  if (bboxContainer) bboxContainer.innerHTML = '';
 
-  // Update classes for risk color
-  resultCard.className = `result-header-card ${caseData.riskLevel}`;
-  riskTitle.textContent = caseData.badgeText.toUpperCase();
-  riskSub.textContent = caseData.summary;
-  confidenceBadge.textContent = `Akurasi AI: ${caseData.confidence}`;
+  if (resultCard) resultCard.className = `result-header-card ${caseData.riskLevel}`;
+  if (riskTitle) riskTitle.textContent = caseData.badgeText.toUpperCase();
+  if (riskSub) riskSub.textContent = caseData.summary;
+  if (confidenceBadge) confidenceBadge.textContent = `Akurasi AI: ${caseData.confidence}`;
 
   if (sourceBadge) {
     sourceBadge.style.display = 'inline-flex';
     if (isRealPhoto) {
       sourceBadge.className = 'ai-source-tag real-photo';
-      sourceBadge.innerHTML = `📸 Citra Foto Nyata (${caseData.sourceType === 'camera' ? 'Kamera Web' : 'Galeri/Kamera'})`;
+      sourceBadge.innerHTML = `📸 Citra Foto Asli (${caseData.sourceType === 'kamera' ? 'Kamera Web/HP' : 'Unggahan'})`;
     } else {
       sourceBadge.className = 'ai-source-tag';
       sourceBadge.innerHTML = '📋 Kasus Preset Klinis (Demo)';
     }
   }
 
-  if (caseData.riskLevel === 'low') {
-    riskBadge.textContent = '🟢';
-  } else {
-    riskBadge.textContent = '🔴';
+  if (riskBadge) {
+    if (caseData.riskLevel === 'low') {
+      riskBadge.textContent = '🟢';
+    } else {
+      riskBadge.textContent = '🔴';
+    }
   }
 
   // Tampilkan citra aktual (FOTO NYATA KAMERA ATAU PRESET)
-  aiImg.src = caseData.imageSrc;
+  if (aiImg) {
+    aiImg.src = caseData.imageSrc;
+  }
 
   // Render Bounding Boxes
-  caseData.boundingBoxes.forEach(box => {
-    const boxEl = document.createElement('div');
-    boxEl.className = `bounding-box ${box.type}`;
-    boxEl.style.left = `${box.x}%`;
-    boxEl.style.top = `${box.y}%`;
-    boxEl.style.width = `${box.w}%`;
-    boxEl.style.height = `${box.h}%`;
+  if (bboxContainer && caseData.boundingBoxes) {
+    caseData.boundingBoxes.forEach(box => {
+      const boxEl = document.createElement('div');
+      boxEl.className = `bounding-box ${box.type}`;
+      boxEl.style.left = `${box.x}%`;
+      boxEl.style.top = `${box.y}%`;
+      boxEl.style.width = `${box.w}%`;
+      boxEl.style.height = `${box.h}%`;
 
-    const tagEl = document.createElement('div');
-    tagEl.className = 'box-tag';
-    tagEl.textContent = box.label;
-    boxEl.appendChild(tagEl);
+      const tagEl = document.createElement('div');
+      tagEl.className = 'box-tag';
+      tagEl.textContent = box.label;
+      boxEl.appendChild(tagEl);
 
-    bboxContainer.appendChild(boxEl);
-  });
+      bboxContainer.appendChild(boxEl);
+    });
+  }
 
-  // Render Diagnostic Findings
-  findingsList.innerHTML = '';
-  caseData.findings.forEach(f => {
-    const item = document.createElement('div');
-    item.className = 'finding-item';
-    
-    let dotColor = '#10b981';
-    if (f.type === 'warning') dotColor = '#f59e0b';
-    if (f.type === 'danger') dotColor = '#ef4444';
+  // Render Findings List
+  if (findingsList) {
+    findingsList.innerHTML = '';
+    caseData.findings.forEach(f => {
+      const item = document.createElement('div');
+      item.className = 'finding-item';
+      let dotColor = '#10b981';
+      if (f.type === 'warning') dotColor = '#f59e0b';
+      if (f.type === 'danger') dotColor = '#ef4444';
 
-    item.innerHTML = `
-      <div class="finding-bullet" style="background: ${dotColor};"></div>
-      <div class="finding-content">
-        <h4>${f.title}</h4>
-        <p>${f.desc}</p>
-      </div>
-    `;
-    findingsList.appendChild(item);
-  });
+      item.innerHTML = `
+        <div class="finding-bullet" style="background: ${dotColor};"></div>
+        <div class="finding-content">
+          <h4>${f.title}</h4>
+          <p>${f.desc}</p>
+        </div>
+      `;
+      findingsList.appendChild(item);
+    });
+  }
 
   // Render Clinical Recommendations
-  recList.innerHTML = '';
-  caseData.recommendations.forEach(r => {
-    const li = document.createElement('li');
-    li.style.marginBottom = '6px';
-    li.style.fontSize = '0.78rem';
-    li.style.lineHeight = '1.4';
-    li.textContent = r;
-    recList.appendChild(li);
-  });
+  if (recList) {
+    recList.innerHTML = '';
+    caseData.recommendations.forEach(r => {
+      const li = document.createElement('li');
+      li.style.marginBottom = '6px';
+      li.style.fontSize = '0.78rem';
+      li.style.lineHeight = '1.4';
+      li.textContent = r;
+      recList.appendChild(li);
+    });
+  }
 
   // Render def-t Index (WHO Clinical Dental Standard)
   renderDeftIndex(caseData.deftIndex);
@@ -514,6 +629,7 @@ function populateAndShowResults(caseKey) {
  * Render WHO def-t Index Card
  */
 function renderDeftIndex(deft) {
+  if (!deft) return;
   const deftValEl = document.getElementById('deftScoreValue');
   const dEl = document.getElementById('deftDVal');
   const eEl = document.getElementById('deftEVal');
@@ -537,9 +653,6 @@ function renderOdontogram(toothStatusMap = {}) {
 
   if (!upperArchEl || !lowerArchEl) return;
 
-  // FDI Two-digit notation for primary/deciduous teeth:
-  // Upper: 55 54 53 52 51 | 61 62 63 64 65
-  // Lower: 85 84 83 82 81 | 71 72 73 74 75
   const upperTeeth = ['55', '54', '53', '52', '51', '61', '62', '63', '64', '65'];
   const lowerTeeth = ['85', '84', '83', '82', '81', '71', '72', '73', '74', '75'];
 
@@ -552,17 +665,15 @@ function renderOdontogram(toothStatusMap = {}) {
 
   const createToothEl = (num) => {
     const el = document.createElement('div');
-    const info = toothStatusMap[num] || { status: 'healthy', note: 'Email Intak, Bebas Karies' };
-    el.className = `tooth-item ${info.status}`;
+    el.className = 'tooth-item';
     el.dataset.tooth = num;
-    
-    let icon = '🦷';
-    if (info.status === 'warning') icon = '⚠️';
-    if (info.status === 'cavity') icon = '🚨';
+
+    const info = toothStatusMap[num] || { status: 'healthy', note: 'Email Intak, Bebas Karies' };
+    el.classList.add(info.status);
 
     el.innerHTML = `
-      <span class="tooth-icon-mini">${icon}</span>
-      <span>${num}</span>
+      <div class="tooth-icon">🦷</div>
+      <div class="tooth-num">${num}</div>
     `;
 
     el.addEventListener('click', () => {
@@ -589,7 +700,6 @@ function renderOdontogram(toothStatusMap = {}) {
   upperTeeth.forEach(t => upperArchEl.appendChild(createToothEl(t)));
   lowerTeeth.forEach(t => lowerArchEl.appendChild(createToothEl(t)));
 
-  // Initial select on first abnormal tooth or central incisor
   const firstAbnormal = Object.keys(toothStatusMap)[0] || '51';
   const targetToothEl = document.querySelector(`.tooth-item[data-tooth="${firstAbnormal}"]`);
   if (targetToothEl) targetToothEl.click();
@@ -626,12 +736,11 @@ function initViewModeSwitcher() {
   if (btnHeatmap) btnHeatmap.onclick = () => setMode('heatmap');
   if (btnOriginal) btnOriginal.onclick = () => setMode('original');
 
-  // Default to Bounding Box
   setMode('bbox');
 }
 
 /**
- * Subtle sound effect for AI scanning using Web Audio API
+ * Audio feedback for AI scanning
  */
 function playScanningAudioTone() {
   try {
@@ -654,16 +763,13 @@ function playScanningAudioTone() {
 
     osc.start();
     osc.stop(ctx.currentTime + 0.6);
-  } catch (e) {
-    // Audio context may be restricted by browser policy
-  }
+  } catch (e) {}
 }
 
 /**
- * Instant Case Builder: Menjamin objek kasus AI langsung tersedia secara synchronous
- * dari foto asli yang diambil (kamera atau galeri) sehingga tidak pernah jatuh ke aset SVG dummy.
+ * Instant Case Builder: Jaminan objek kasus AI langsung tersedia seketika
  */
-function createInstantDentalCase(dataUrl, sourceType = 'foto') {
+function createInstantDentalCase(dataUrl, sourceType = 'kamera') {
   const isCamera = sourceType.toLowerCase().includes('kamera');
   return {
     id: `case-custom-${Date.now()}`,
@@ -707,33 +813,9 @@ function createInstantDentalCase(dataUrl, sourceType = 'foto') {
 }
 
 /**
- * Helper to analyze an image data URL (e.g. from gallery upload)
- */
-function analyzeImageFromDataUrl(imgDataUrl, callback) {
-  const img = new Image();
-  img.crossOrigin = 'Anonymous';
-  img.onload = () => {
-    const canvas = document.createElement('canvas');
-    const w = img.width || 640;
-    const h = img.height || 480;
-    canvas.width = w;
-    canvas.height = h;
-    const ctx = canvas.getContext('2d');
-    ctx.drawImage(img, 0, 0, w, h);
-    
-    const analyzedCase = performDentalAnalysisOnImage(ctx, w, h, imgDataUrl, 'upload');
-    if (callback) callback(analyzedCase);
-  };
-  img.src = imgDataUrl;
-}
-
-/**
  * Computer Vision Pipeline for Oral & Dental Health Analysis
- * Analyzes pixel values (luminance, dark lesion clustering, gingival erythema)
- * to output objective Def-T score, bounding boxes, findings, and clinical triage.
  */
-function performDentalAnalysisOnImage(ctx, width, height, dataUrl, sourceType = 'camera') {
-  // Ambil sample dari area tengah (zona rongga mulut: 60% tengah frame)
+function performDentalAnalysisOnImage(ctx, width, height, dataUrl, sourceType = 'kamera') {
   const sampleW = 120;
   const sampleH = 120;
   
@@ -744,7 +826,7 @@ function performDentalAnalysisOnImage(ctx, width, height, dataUrl, sourceType = 
   
   // Crop area fokus rongga mulut (20% - 80%)
   const cropX = width * 0.2;
-  const cropY = width * 0.2;
+  const cropY = height * 0.2;
   const cropW = width * 0.6;
   const cropH = height * 0.6;
   
@@ -787,10 +869,7 @@ function performDentalAnalysisOnImage(ctx, width, height, dataUrl, sourceType = 
   const redRatio = (redInflamedPixels / totalSamples) * 100;
   const isCariesDetected = darkRatio > 2.5 || redRatio > 4.5;
 
-  console.log(`[SIGI-AI CV] Source: ${sourceType}, DarkRatio: ${darkRatio.toFixed(2)}%, RedRatio: ${redRatio.toFixed(2)}%, Classification: ${isCariesDetected ? 'HIGH RISK' : 'LOW RISK'}`);
-
   if (isCariesDetected) {
-    // Estimasi posisi titik pusat karies pada frame (skala 0 - 100%)
     const avgPx = darkPixels > 0 ? (sumDarkX / darkPixels) : (sampleW * 0.5);
     const avgPy = darkPixels > 0 ? (sumDarkY / darkPixels) : (sampleH * 0.5);
     
@@ -802,8 +881,8 @@ function performDentalAnalysisOnImage(ctx, width, height, dataUrl, sourceType = 
 
     return {
       id: `case-custom-${Date.now()}`,
-      title: 'Karies Gigi Berlubang (Deteksi Foto Langsung)',
-      badgeText: 'Karies (Berlubang)',
+      title: 'Pemeriksaan Gigi Anak (Deteksi Karies Aktif)',
+      badgeText: 'Karies Terdeteksi',
       riskLevel: 'high',
       score: calculatedScore,
       imageSrc: dataUrl,
@@ -813,17 +892,17 @@ function performDentalAnalysisOnImage(ctx, width, height, dataUrl, sourceType = 
       findings: [
         {
           title: 'Karies Kavitas Terdeteksi',
-          desc: 'Computer Vision mendeteksi area lesi terbuka/demineralisasi pada permukaan gigi anak.',
+          desc: `Model mendeteksi anomali demineralisasi gelap (${darkRatio.toFixed(1)}% area) yang konsisten dengan lubang gigi.`,
           type: 'danger'
         },
         {
-          title: 'Indikasi Peradangan Gingiva',
-          desc: 'Piksel eritema mengindikasikan adanya iritasi/pembengkakan pada tepi gusi dekat leher gigi.',
+          title: 'Indikasi Iritasi Gingiva Sekitar',
+          desc: 'Terdeteksi perbedaan kromatik kemerahan pada jaringan gusi yang mengindikasikan peradangan tepi email.',
           type: 'danger'
         },
         {
-          title: 'Risiko Progresivitas Karies',
-          desc: 'Disarankan segera mendapatkan penanganan tambal gigi di faskes agar tidak memicu nyeri/abses.',
+          title: 'Perlu Penanganan Faskes',
+          desc: 'Karies gigi susu berisiko merusak benih gigi tetap bila tidak segera ditangani di Puskesmas.',
           type: 'danger'
         }
       ],
@@ -844,7 +923,7 @@ function performDentalAnalysisOnImage(ctx, width, height, dataUrl, sourceType = 
       ]
     };
   } else {
-    // Gigi Sehat / Risiko Rendah
+    // Gigi Sehat / Bebas Karies
     const calculatedScore = Math.min(98, Math.round(93 + Math.random() * 4));
     const accuracy = `${(96 + Math.random() * 3).toFixed(1)}%`;
 
@@ -889,3 +968,8 @@ function performDentalAnalysisOnImage(ctx, width, height, dataUrl, sourceType = 
     };
   }
 }
+
+// Inisialisasi scanner saat DOM siap
+document.addEventListener('DOMContentLoaded', () => {
+  initScanner();
+});

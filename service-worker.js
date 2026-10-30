@@ -1,32 +1,27 @@
-const CACHE_NAME = 'sigi-ai-v4';
+// SIGI-AI Service Worker v5.0 (Network-First & Cache Purge)
+const CACHE_NAME = 'sigi-ai-v5';
 
 self.addEventListener('install', (event) => {
   self.skipWaiting();
 });
 
 self.addEventListener('activate', (event) => {
-  // Hapus semua cache versi lama seketika
+  // Purge any and all existing caches immediately
   event.waitUntil(
     caches.keys().then((keys) => {
-      return Promise.all(
-        keys.map((key) => caches.delete(key))
-      );
+      return Promise.all(keys.map((key) => caches.delete(key)));
+    }).then(() => {
+      return self.clients.claim();
     })
   );
-  self.clients.claim();
 });
 
-// Strategi: Network-First (Coba internet dulu agar selalu dapat update terbaru, jika offline baru ambil cache)
+// Network-First: Always fetch live from GitHub Pages
 self.addEventListener('fetch', (event) => {
+  if (event.request.method !== 'GET') return;
   event.respondWith(
     fetch(event.request)
       .then((networkResponse) => {
-        if (networkResponse && networkResponse.status === 200 && event.request.method === 'GET') {
-          const responseToCache = networkResponse.clone();
-          caches.open(CACHE_NAME).then((cache) => {
-            cache.put(event.request, responseToCache);
-          });
-        }
         return networkResponse;
       })
       .catch(() => {
