@@ -1,5 +1,5 @@
-// SIGI-AI Service Worker v5.0 (Network-First & Cache Purge)
-const CACHE_NAME = 'sigi-ai-v5';
+// DENTIFY Service Worker v6.1 (Network-First & Cache Purge)
+const CACHE_NAME = 'dentify-v6-1';
 
 self.addEventListener('install', (event) => {
   self.skipWaiting();

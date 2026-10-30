@@ -1,7 +1,7 @@
 {
-  "name": "SIGI-AI — Skrining Gigi Anak Berbasis AI",
-  "short_name": "SIGI-AI",
-  "description": "Aplikasi deteksi dini karies dan kesehatan gigi anak berbasis AI Computer Vision",
+  "name": "DENTIFY — Dental Identification for Young Children",
+  "short_name": "DENTIFY",
+  "description": "DENTIFY: Aplikasi skrining dan identifikasi kesehatan gigi anak berbasis AI Computer Vision",
   "start_url": "./index.html",
   "display": "standalone",
   "background_color": "#0f172a",

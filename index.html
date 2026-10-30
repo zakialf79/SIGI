@@ -3,15 +3,15 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>SIGI-AI — Skrining Gigi Anak Berbasis Kecerdasan Buatan</title>
-  <meta name="description" content="Inovasi Produk Digital: Prototipe SIGI-AI untuk deteksi dini karies dan kesehatan gigi anak berbasis AI Computer Vision.">
+  <title>DENTIFY — Dental Identification for Young Children</title>
+  <meta name="description" content="Inovasi Produk Digital: Prototipe DENTIFY (Dental Identification for Young Children) untuk deteksi dini karies dan kesehatan gigi anak berbasis AI Computer Vision.">
   
   <!-- PWA Meta Tags & Manifest -->
   <link rel="manifest" href="manifest.json">
   <meta name="theme-color" content="#0284c7">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="apple-mobile-web-app-title" content="SIGI-AI">
+  <meta name="apple-mobile-web-app-title" content="DENTIFY">
   <link rel="apple-touch-icon" href="assets/logo.svg">
   <link rel="icon" type="image/svg+xml" href="assets/logo.svg">
 
@@ -20,7 +20,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   
-  <link rel="stylesheet" href="css/style.css?v=5.1">
+  <link rel="stylesheet" href="css/style.css?v=6.1">
 
   <!-- Anti-Cache & Auto-Purge Service Worker to guarantee fresh code -->
   <script>
@@ -45,8 +45,8 @@
   <!-- Top Presentation Toolbar (Untuk Demo Juri & Pengujian Layar) -->
   <header class="presentation-bar">
     <div class="brand-badge">
-      <img src="assets/logo.svg" alt="SIGI-AI Logo">
-      <span>SIGI-AI • Inovasi Produk Digital</span>
+      <img src="assets/logo.svg" alt="DENTIFY Logo">
+      <span>DENTIFY • Dental Identification for Young Children</span>
     </div>
     <div class="presentation-controls">
       <button id="btnInstallPwa" class="btn-quick-guide" style="background: rgba(16, 185, 129, 0.25); border-color: rgba(16, 185, 129, 0.5);">
@@ -104,7 +104,7 @@
           <div class="setup-form-container">
             <div class="setup-illustration">
               <div class="setup-icon-big">🦷</div>
-              <h2>Selamat Datang di SIGI-AI</h2>
+              <h2>Selamat Datang di DENTIFY</h2>
               <p>Masukkan data profil anak untuk memulai skrining gigi berbasis kecerdasan buatan.</p>
             </div>
 
@@ -211,7 +211,7 @@
           <div class="empty-state-card" id="emptyStateCard" style="display: none;">
             <div class="empty-state-icon">👶</div>
             <h3>Belum Ada Profil Anak</h3>
-            <p>Tambahkan profil anak terlebih dahulu untuk mulai menggunakan SIGI-AI.</p>
+            <p>Tambahkan profil anak terlebih dahulu untuk mulai menggunakan DENTIFY.</p>
             <button class="btn-primary-action" id="btnGoToSetup">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
               Tambah Profil Anak
@@ -544,7 +544,7 @@
         <strong>NAMA PASIEN :</strong> <span id="ticketPatientName">—</span><br>
         <strong>TUJUAN      :</strong> <span id="ticketFaskesName">—</span><br>
         <strong>LOKASI GPS  :</strong> <span id="ticketLocationInfo">Otomatis Terdeteksi</span><br>
-        <strong>PRIORITAS   :</strong> Triage Otomatis SIGI-AI
+        <strong>PRIORITAS   :</strong> Triage Otomatis DENTIFY
       </div>
 
       <div style="display: flex; flex-direction: column; gap: 8px;">
@@ -564,7 +564,7 @@
     <div class="modal-card" style="max-width: 420px; text-align: left;">
       <h3 style="text-align: center; margin-bottom: 12px;">🌟 Panduan Presentasi Prototype</h3>
       <p style="margin-bottom: 12px; font-size: 0.8rem;">
-        Untuk mendemokan inovasi <strong>SIGI-AI</strong> di hadapan dewan juri:
+        Untuk mendemokan inovasi <strong>DENTIFY</strong> (Dental Identification for Young Children) di hadapan dewan juri:
       </p>
       <ol style="font-size: 0.78rem; padding-left: 18px; line-height: 1.5; margin-bottom: 16px;">
         <li><strong>Isi Profil Anak</strong>: Masukkan data anak terlebih dahulu (nama, usia, jenis kelamin).</li>
@@ -596,8 +596,8 @@
     </div>
   </div>
 
-  <script src="js/scanner.js?v=5.1"></script>
-  <script src="js/app.js?v=5.1"></script>
+  <script src="js/scanner.js?v=6.1"></script>
+  <script src="js/app.js?v=6.1"></script>
   
   <!-- PWA Service Worker Registration & Install Prompt Handling -->
   <script>

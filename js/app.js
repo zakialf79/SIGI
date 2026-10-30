@@ -1,5 +1,5 @@
 /**
- * SIGI-AI Main Application Controller
+ * DENTIFY (Dental Identification for Young Children) Main Application Controller
  * Handles screen transitions, navigation state, child profiles (localStorage), history logs, and referral tickets.
  * No dummy data - all data is entered and persisted by the user.
  */
@@ -730,12 +730,12 @@ function initPresentationControls() {
       const locationInfo = document.getElementById('ticketLocationInfo')?.textContent || '-';
 
       const waText = encodeURIComponent(
-        `[TIKET RUJUKAN DIGITAL SIGI-AI]\n` +
+        `[TIKET RUJUKAN DIGITAL DENTIFY]\n` +
         `Nomor Tiket: ${ticketCode}\n` +
         `Pasien: ${patientName}\n` +
         `Tujuan: ${faskesName}\n` +
         `Lokasi GPS: ${locationInfo}\n` +
-        `Prioritas: Triage Otomatis SIGI-AI\n\n` +
+        `Prioritas: Triage Otomatis DENTIFY\n\n` +
         `Mohon jadwalkan pemeriksaan gigi anak. Terima kasih.`
       );
       window.open(`https://wa.me/?text=${waText}`, '_blank');
