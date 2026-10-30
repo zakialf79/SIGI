@@ -118,7 +118,11 @@ function initScanner() {
       // Reset custom captured photo saat pengguna secara eksplisit memilih preset demo
       customCapturedImage = null;
       customAnalyzedCase = null;
-      sessionStorage.removeItem('sigi_active_scan_img');
+      window.SIGI_LATEST_PHOTO = null;
+      try {
+        localStorage.removeItem('sigi_latest_photo');
+        sessionStorage.removeItem('sigi_active_scan_img');
+      } catch (e) {}
       
       stopLiveCamera();
       if (CLINICAL_CASES[caseKey]) {
@@ -139,11 +143,22 @@ function initScanner() {
     reader.onload = (event) => {
       const imgDataUrl = event.target.result;
       
-      // SIMPAN FOTO NYATA SECARA LANGSUNG
+      // SIMPAN FOTO NYATA SECARA LANGSUNG KE SEMUA STATE & STORAGE
       customCapturedImage = imgDataUrl;
+      window.SIGI_LATEST_PHOTO = imgDataUrl;
+      try {
+        localStorage.setItem('sigi_latest_photo', imgDataUrl);
+      } catch (err) {}
+
+      // LANGSUNG GANTI ELEMEN GAMBAR PREVIEW & GAMBAR HASIL KE FOTO NYATA INI!
       previewImg.src = imgDataUrl;
       previewImg.style.display = 'block';
       videoStream.style.display = 'none';
+
+      const aiImg = document.getElementById('aiResultImg');
+      if (aiImg) {
+        aiImg.src = imgDataUrl;
+      }
 
       // Langsung buat case analisis instan dari foto tersebut agar tidak pernah null
       customAnalyzedCase = createInstantDentalCase(imgDataUrl, sourceName.toLowerCase());
@@ -152,11 +167,12 @@ function initScanner() {
       analyzeImageFromDataUrl(imgDataUrl, (analyzedCase) => {
         if (analyzedCase) {
           customAnalyzedCase = analyzedCase;
+          customAnalyzedCase.imageSrc = imgDataUrl;
         }
       });
 
       if (window.showToast) {
-        showToast(`Foto ${sourceName} berhasil dimuat! Tekan tombol shutter bulat untuk analisis AI.`, 'success');
+        showToast(`Foto ${sourceName} berhasil dimuat! Tekan tombol shutter bulat di bawah untuk skrining AI.`, 'success');
       }
     };
     reader.readAsDataURL(file);
@@ -291,7 +307,10 @@ function runAIScanSimulation() {
       
       const capturedDataUrl = canvas.toDataURL('image/jpeg', 0.92);
       customCapturedImage = capturedDataUrl;
-      sessionStorage.setItem('sigi_active_scan_img', capturedDataUrl);
+      window.SIGI_LATEST_PHOTO = capturedDataUrl;
+      try {
+        localStorage.setItem('sigi_latest_photo', capturedDataUrl);
+      } catch (err) {}
       
       // Hentikan live stream dan freeze tampilan ke foto yang baru saja diambil
       stopLiveCamera();
@@ -300,8 +319,15 @@ function runAIScanSimulation() {
       previewImg.style.display = 'block';
       videoStream.style.display = 'none';
 
+      // Langsung ubah gambar di layar hasil juga seketika!
+      const aiImg = document.getElementById('aiResultImg');
+      if (aiImg) {
+        aiImg.src = capturedDataUrl;
+      }
+
       // Langsung buat analisis Computer Vision pada frame foto kamera yang baru diambil
-      customAnalyzedCase = performDentalAnalysisOnImage(ctx, vw, vh, capturedDataUrl, 'camera');
+      customAnalyzedCase = performDentalAnalysisOnImage(ctx, vw, vh, capturedDataUrl, 'kamera');
+      customAnalyzedCase.imageSrc = capturedDataUrl;
       
       if (window.showToast) {
         showToast('Foto kamera berhasil diambil! Memproses analisis AI...', 'info');
@@ -313,7 +339,10 @@ function runAIScanSimulation() {
   } else if (!customCapturedImage && previewImg && previewImg.src && !previewImg.src.includes('.svg')) {
     // Jika ada foto di preview dari galeri atau kamera native
     customCapturedImage = previewImg.src;
-    sessionStorage.setItem('sigi_active_scan_img', customCapturedImage);
+    window.SIGI_LATEST_PHOTO = customCapturedImage;
+    try {
+      localStorage.setItem('sigi_latest_photo', customCapturedImage);
+    } catch (err) {}
     customAnalyzedCase = createInstantDentalCase(customCapturedImage, 'foto');
   }
 
@@ -348,8 +377,17 @@ function populateAndShowResults(caseKey) {
   let caseData;
   let isRealPhoto = false;
 
-  // Cek foto nyata baik dari memory maupun sessionStorage
-  const activePhoto = customCapturedImage || sessionStorage.getItem('sigi_active_scan_img');
+  // Cek foto nyata baik dari memory, window, localStorage, maupun preview
+  const previewImgEl = document.getElementById('scannerPreviewImg');
+  let activePhoto = customCapturedImage || window.SIGI_LATEST_PHOTO;
+  if (!activePhoto) {
+    try {
+      activePhoto = localStorage.getItem('sigi_latest_photo') || sessionStorage.getItem('sigi_active_scan_img');
+    } catch (e) {}
+  }
+  if (!activePhoto && previewImgEl && previewImgEl.src && !previewImgEl.src.includes('.svg')) {
+    activePhoto = previewImgEl.src;
+  }
 
   // Prioritaskan 100% foto nyata jika ada foto yang diambil/diunggah
   if (activePhoto && !activePhoto.includes('.svg')) {
