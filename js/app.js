@@ -533,6 +533,13 @@ function switchScreen(screenId) {
       btn.classList.add('active');
     }
   });
+
+  // Scanner lifecycle hooks
+  if (screenId === 'screen-scan') {
+    if (window.onEnterScannerScreen) window.onEnterScannerScreen();
+  } else {
+    if (window.onLeaveScannerScreen) window.onLeaveScannerScreen();
+  }
 }
 window.switchScreen = switchScreen;
 

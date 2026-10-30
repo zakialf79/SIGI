@@ -1,5 +1,5 @@
 /**
- * SIGI-AI Scanner & AI Computer Vision Simulation Engine (v5.0)
+ * SIGI-AI Scanner & AI Computer Vision Simulation Engine (v5.1)
  * Handles live webcam capture, smartphone native camera, gallery upload,
  * real-time image normalization/compression, AI Computer Vision analysis,
  * and clinical odontogram/def-t rendering.
@@ -38,7 +38,7 @@ const CLINICAL_CASES = {
       'Jadwalkan pemeriksaan gigi berkala setiap 6 bulan sekali di Posyandu/Puskesmas.'
     ],
     deftIndex: { d: 0, e: 0, f: 0, total: 0, status: 'Bebas Karies (WHO Level 0)' },
-    odontogram: {}, // all healthy by default
+    odontogram: {},
     boundingBoxes: [
       { x: 38, y: 32, w: 24, h: 22, label: 'Email Sehat (98%)', type: 'safe' },
       { x: 26, y: 35, w: 14, h: 18, label: 'Gingiva Normal (96%)', type: 'safe' }
@@ -96,7 +96,7 @@ let customCapturedImage = null; // Stored user captured/uploaded photo
 let customAnalyzedCase = null;  // Analyzed case result for user photo
 
 /**
- * Helper: Ambil citra foto nyata yang aktif dari berbagai layer memori/storage
+ * Helper: Ambil citra foto nyata yang aktif
  */
 function getActiveUserPhoto() {
   if (customCapturedImage && !customCapturedImage.includes('.svg')) {
@@ -122,7 +122,7 @@ function getActiveUserPhoto() {
 }
 
 /**
- * Helper: Bersihkan foto kustom (dipanggil saat pengguna sengaja memilih preset demo)
+ * Helper: Bersihkan foto kustom
  */
 function clearActiveUserPhoto() {
   customCapturedImage = null;
@@ -136,7 +136,6 @@ function clearActiveUserPhoto() {
 
 /**
  * Kompresi dan Normalisasi Citra ke Canvas Web-Safe
- * Menjamin resolusi max 800px & ukuran ~100KB agar TIDAK PERNAH crash atau melampaui quota localStorage.
  */
 function compressAndStorePhoto(sourceElementOrImage, sourceType, onComplete) {
   try {
@@ -166,19 +165,15 @@ function compressAndStorePhoto(sourceElementOrImage, sourceType, onComplete) {
 
     const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.85);
 
-    // Simpan ke semua state & persistence
     customCapturedImage = compressedDataUrl;
     window.SIGI_LATEST_PHOTO = compressedDataUrl;
     try {
       localStorage.setItem('sigi_latest_photo', compressedDataUrl);
-    } catch (e) {
-      console.warn('Storage save fallback:', e);
-    }
+    } catch (e) {}
     try {
       sessionStorage.setItem('sigi_active_scan_img', compressedDataUrl);
     } catch (e) {}
 
-    // Perbarui DOM seketika
     const previewImg = document.getElementById('scannerPreviewImg');
     const livePrompt = document.getElementById('scannerLivePrompt');
     const videoStream = document.getElementById('scannerVideoStream');
@@ -194,7 +189,6 @@ function compressAndStorePhoto(sourceElementOrImage, sourceType, onComplete) {
       aiImg.src = compressedDataUrl;
     }
 
-    // Jalankan Computer Vision AI untuk ekstraksi fitur dental
     customAnalyzedCase = performDentalAnalysisOnImage(ctx, targetW, targetH, compressedDataUrl, sourceType);
     customAnalyzedCase.imageSrc = compressedDataUrl;
 
@@ -204,6 +198,26 @@ function compressAndStorePhoto(sourceElementOrImage, sourceType, onComplete) {
     if (onComplete) onComplete(null, null);
   }
 }
+
+/**
+ * Lifecycle Hook: Saat pengguna masuk ke layar scanner
+ */
+window.onEnterScannerScreen = function() {
+  customCapturedImage = null; // Mulai sesi baru agar tidak mereplay foto lama
+  // Coba aktifkan kamera live secara otomatis
+  if (!isCameraActive) {
+    startLiveCamera().catch(() => {
+      // Jika auto-start gagal (misal izin ditolak), tampilkan prompt pilihan
+    });
+  }
+};
+
+/**
+ * Lifecycle Hook: Saat pengguna meninggalkan layar scanner
+ */
+window.onLeaveScannerScreen = function() {
+  stopLiveCamera();
+};
 
 /**
  * Initialize scanner events, buttons, and camera handlers
@@ -218,10 +232,11 @@ function initScanner() {
   const cameraInput = document.getElementById('scannerCameraInput');
   const uploadBtn = document.getElementById('btnUploadTrigger');
   const toggleCameraBtn = document.getElementById('btnToggleLiveCamera');
-  const flashBtn = document.getElementById('btnFlashToggle');
-  const viewportBox = document.getElementById('scannerViewportBox');
+  const cameraCaptureBtn = document.getElementById('btnCameraCaptureTrigger');
+  const promptStartLive = document.getElementById('btnPromptStartLive');
+  const promptNativeCam = document.getElementById('btnPromptNativeCam');
 
-  // Handle Preset cases click (hanya aktif jika user sengaja klik preset demo)
+  // Preset demo cases click handling
   presetButtons.forEach(btn => {
     btn.addEventListener('click', () => {
       presetButtons.forEach(b => b.classList.remove('active'));
@@ -229,7 +244,6 @@ function initScanner() {
       const caseKey = btn.dataset.case;
       currentSelectedCase = caseKey;
       
-      // Bersihkan foto pengguna karena memilih mode preset demo
       clearActiveUserPhoto();
       stopLiveCamera();
 
@@ -244,7 +258,7 @@ function initScanner() {
     });
   });
 
-  // Handler saat file citra dipilih dari Galeri maupun Kamera Native HP
+  // Handler seragam saat ada file citra yang dipilih (Galeri atau Kamera HP)
   const handleSelectedImageFile = (file, sourceName = 'Kamera') => {
     if (!file) return;
     stopLiveCamera();
@@ -257,9 +271,8 @@ function initScanner() {
       img.onload = () => {
         compressAndStorePhoto(img, sourceName.toLowerCase(), (dataUrl, analyzedCase) => {
           if (window.showToast) {
-            showToast(`Foto ${sourceName} berhasil diambil! Memulai pemindaian AI...`, 'success');
+            showToast(`Foto ${sourceName} berhasil dimuat! Memulai analisis SIGI-AI...`, 'success');
           }
-          // Otomatis jalankan transisi pemindaian dan tampilkan hasil foto nyata!
           runAIScanTransition();
         });
       };
@@ -268,7 +281,7 @@ function initScanner() {
     reader.readAsDataURL(file);
   };
 
-  // Trigger file upload dari Galeri
+  // 1. Trigger File Upload dari Galeri
   if (uploadBtn && uploadInput) {
     uploadBtn.addEventListener('click', () => {
       uploadInput.click();
@@ -281,7 +294,14 @@ function initScanner() {
     });
   }
 
-  // Trigger kamera native perangkat
+  // 2. Trigger Kamera Native HP secara langsung (tombol kanan pada controls bar)
+  if (cameraCaptureBtn && cameraInput) {
+    cameraCaptureBtn.addEventListener('click', () => {
+      cameraInput.click();
+    });
+  }
+
+  // File change event untuk input kamera
   if (cameraInput) {
     cameraInput.addEventListener('change', (e) => {
       if (e.target.files && e.target.files[0]) {
@@ -290,45 +310,37 @@ function initScanner() {
     });
   }
 
-  // Trigger Tombol Kamera di Top Bar
-  if (toggleCameraBtn) {
-    toggleCameraBtn.addEventListener('click', () => {
-      if (isCameraActive) {
-        stopLiveCamera();
-      } else {
-        startLiveCamera().catch(() => {
-          // Fallback: langsung buka dialog kamera perangkat
-          if (cameraInput) cameraInput.click();
-        });
-      }
+  // 3. Tombol di dalam Viewfinder Prompt Box
+  if (promptNativeCam && cameraInput) {
+    promptNativeCam.addEventListener('click', (e) => {
+      e.stopPropagation();
+      cameraInput.click();
     });
   }
 
-  // Trigger Tombol Lampu / Kamera Samping
-  if (flashBtn) {
-    flashBtn.addEventListener('click', () => {
-      if (!isCameraActive) {
-        startLiveCamera().catch(() => {
-          if (cameraInput) cameraInput.click();
-        });
-      } else {
-        if (window.showToast) {
-          showToast('Pencahayaan otomatis SIGI-AI aktif untuk meningkatkan kontras email gigi.', 'info');
-        }
-      }
-    });
-  }
-
-  // Viewfinder Prompt Click -> Buka Kamera
-  if (livePrompt) {
-    livePrompt.addEventListener('click', () => {
+  if (promptStartLive) {
+    promptStartLive.addEventListener('click', (e) => {
+      e.stopPropagation();
       startLiveCamera().catch(() => {
         if (cameraInput) cameraInput.click();
       });
     });
   }
 
-  // Shutter action (Ambil & Analisis Foto)
+  // 4. Trigger Tombol Kamera Live di Top Bar
+  if (toggleCameraBtn) {
+    toggleCameraBtn.addEventListener('click', () => {
+      if (isCameraActive) {
+        stopLiveCamera();
+      } else {
+        startLiveCamera().catch(() => {
+          if (cameraInput) cameraInput.click();
+        });
+      }
+    });
+  }
+
+  // 5. Tombol Shutter Utama (Lingkaran Besar)
   if (shutterBtn) {
     shutterBtn.addEventListener('click', () => {
       runAIScanSimulation();
@@ -351,19 +363,32 @@ async function startLiveCamera() {
       throw new Error('MediaDevices API not supported');
     }
 
-    const stream = await navigator.mediaDevices.getUserMedia({
-      video: {
-        facingMode: { ideal: 'environment' },
-        width: { ideal: 1280 },
-        height: { ideal: 720 }
-      },
-      audio: false
-    });
+    let stream = null;
+    try {
+      // Prioritaskan kamera belakang (environment) untuk HP
+      stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: { ideal: 'environment' } },
+        audio: false
+      });
+    } catch (e1) {
+      // Fallback kamera laptop / desktop
+      stream = await navigator.mediaDevices.getUserMedia({
+        video: true,
+        audio: false
+      });
+    }
 
     cameraStream = stream;
     if (videoStream) {
+      videoStream.muted = true;
+      videoStream.setAttribute('playsinline', 'true');
+      videoStream.setAttribute('autoplay', 'true');
       videoStream.srcObject = stream;
-      await videoStream.play();
+      try {
+        await videoStream.play();
+      } catch (errPlay) {
+        console.warn('videoStream.play error:', errPlay);
+      }
       videoStream.style.display = 'block';
     }
 
@@ -383,7 +408,7 @@ async function startLiveCamera() {
       showToast('Kamera aktif! Posisikan rongga mulut anak lalu tekan tombol shutter bulat.', 'info');
     }
   } catch (err) {
-    console.warn('Camera getUserMedia error, fallback to native file input:', err);
+    console.warn('Camera getUserMedia error:', err);
     stopLiveCamera();
     throw err;
   }
@@ -409,21 +434,16 @@ function stopLiveCamera() {
     videoStream.srcObject = null;
   }
 
-  const activePhoto = getActiveUserPhoto();
-  if (activePhoto) {
+  // Tampilkan preview foto jika baru saja diambil, atau prompt jika kosong
+  if (customCapturedImage) {
     if (previewImg) {
-      previewImg.src = activePhoto;
+      previewImg.src = customCapturedImage;
       previewImg.style.display = 'block';
     }
     if (livePrompt) livePrompt.style.display = 'none';
   } else {
-    if (previewImg && previewImg.src && !previewImg.src.includes('.svg')) {
-      previewImg.style.display = 'block';
-      if (livePrompt) livePrompt.style.display = 'none';
-    } else {
-      if (previewImg) previewImg.style.display = 'none';
-      if (livePrompt) livePrompt.style.display = 'flex';
-    }
+    if (previewImg) previewImg.style.display = 'none';
+    if (livePrompt) livePrompt.style.display = 'flex';
   }
 
   if (toggleCameraBtn) {
@@ -459,7 +479,7 @@ function runAIScanTransition() {
 }
 
 /**
- * Shutter Button Execution: Handle Kamera Live, Foto Aktif, atau Buka Kamera
+ * Shutter Button Execution: Handle Kamera Live atau Buka Kamera HP
  */
 function runAIScanSimulation() {
   const videoStream = document.getElementById('scannerVideoStream');
@@ -474,14 +494,14 @@ function runAIScanSimulation() {
     return;
   }
 
-  // 2. Jika sudah ada foto yang diambil/diunggah
-  const activePhoto = getActiveUserPhoto();
-  if (activePhoto) {
+  // 2. Jika baru saja memilih/mengambil foto baru yang sedang di-preview
+  const previewImg = document.getElementById('scannerPreviewImg');
+  if (previewImg && previewImg.src && !previewImg.src.includes('.svg') && (previewImg.src.startsWith('data:') || previewImg.src.startsWith('blob:'))) {
     runAIScanTransition();
     return;
   }
 
-  // 3. Jika kamera belum aktif dan belum ada foto: Otomatis buka kamera!
+  // 3. Jika kamera belum aktif dan belum ada foto baru: Coba aktifkan kamera web, jika tidak buka kamera HP
   startLiveCamera().catch(() => {
     if (cameraInput) cameraInput.click();
   });
@@ -824,7 +844,6 @@ function performDentalAnalysisOnImage(ctx, width, height, dataUrl, sourceType = 
   tempCanvas.height = sampleH;
   const tempCtx = tempCanvas.getContext('2d');
   
-  // Crop area fokus rongga mulut (20% - 80%)
   const cropX = width * 0.2;
   const cropY = height * 0.2;
   const cropW = width * 0.6;
@@ -852,14 +871,12 @@ function performDentalAnalysisOnImage(ctx, width, height, dataUrl, sourceType = 
     const px = pixelIndex % sampleW;
     const py = Math.floor(pixelIndex / sampleW);
 
-    // Kavitasi karies gelap
     if (luminance < 65) {
       darkPixels++;
       sumDarkX += px;
       sumDarkY += py;
     }
     
-    // Inflamasi/eritema gingiva
     if (r > 150 && r > g * 1.35 && r > b * 1.35) {
       redInflamedPixels++;
     }
@@ -923,7 +940,6 @@ function performDentalAnalysisOnImage(ctx, width, height, dataUrl, sourceType = 
       ]
     };
   } else {
-    // Gigi Sehat / Bebas Karies
     const calculatedScore = Math.min(98, Math.round(93 + Math.random() * 4));
     const accuracy = `${(96 + Math.random() * 3).toFixed(1)}%`;
 
@@ -969,7 +985,6 @@ function performDentalAnalysisOnImage(ctx, width, height, dataUrl, sourceType = 
   }
 }
 
-// Inisialisasi scanner saat DOM siap
 document.addEventListener('DOMContentLoaded', () => {
   initScanner();
 });
