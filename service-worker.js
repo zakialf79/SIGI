@@ -1,5 +1,5 @@
-// DENTIFY Service Worker v6.1 (Network-First & Cache Purge)
-const CACHE_NAME = 'dentify-v6-1';
+// DENTIFY Service Worker v6.2 (Network-First & Cache Purge)
+const CACHE_NAME = 'dentify-v6-2';
 
 self.addEventListener('install', (event) => {
   self.skipWaiting();
