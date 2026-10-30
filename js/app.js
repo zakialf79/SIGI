@@ -100,6 +100,203 @@ function getActiveChild() {
   return found || childProfiles[0];
 }
 
+// ====== GEOLOCATION STATE ======
+let userLocation = null; // { lat, lng }
+
+// ====== FASKES DATABASE (simulasi data faskes kesehatan gigi di Indonesia) ======
+const FASKES_DATABASE = [
+  { name: 'Puskesmas Dayah Sehat', type: 'Puskesmas', desc: 'Poli Gigi Anak • Buka Senin-Sabtu', lat: 5.5483, lng: 95.3238, phone: '6281234567890' },
+  { name: 'Posyandu Melati Indah', type: 'Posyandu', desc: 'Kader Ibu Rahma • Jadwal Timbang Bulanan', lat: 5.5510, lng: 95.3200, phone: '6281234567891' },
+  { name: 'RS Khusus Gigi & Mulut (RSGM)', type: 'Rumah Sakit', desc: 'Dokter Gigi Spesialis Pedodonti (KGA)', lat: 5.5680, lng: 95.3480, phone: '6281234567892' },
+  { name: 'Puskesmas Kuta Alam', type: 'Puskesmas', desc: 'Poli Gigi Umum & Anak • Buka Senin-Jumat', lat: 5.5560, lng: 95.3350, phone: '6281234567893' },
+  { name: 'Klinik Gigi Sehat Bunda', type: 'Klinik', desc: 'Dokter Gigi Anak • Buka Setiap Hari', lat: 5.5420, lng: 95.3150, phone: '6281234567894' },
+  { name: 'Posyandu Cempaka Putih', type: 'Posyandu', desc: 'Kader Ibu Sri • Jadwal Posyandu Mingguan', lat: 5.5530, lng: 95.3280, phone: '6281234567895' },
+  { name: 'RSUD dr. Zainoel Abidin', type: 'Rumah Sakit', desc: 'Poli Gigi & Mulut Spesialis Lengkap', lat: 5.5560, lng: 95.3180, phone: '6281234567896' },
+  { name: 'Puskesmas Ulee Kareng', type: 'Puskesmas', desc: 'Poli Gigi Anak • Buka Senin-Sabtu', lat: 5.5250, lng: 95.2980, phone: '6281234567897' }
+];
+
+/**
+ * Hitung jarak Haversine (km) antara dua koordinat GPS
+ */
+function haversineDistance(lat1, lng1, lat2, lng2) {
+  const R = 6371;
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLng = (lng2 - lng1) * Math.PI / 180;
+  const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+            Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+            Math.sin(dLng / 2) * Math.sin(dLng / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return R * c;
+}
+
+/**
+ * Format jarak untuk tampilan
+ */
+function formatDistance(km) {
+  if (km < 1) return `${Math.round(km * 1000)} m`;
+  return `${km.toFixed(1)} km`;
+}
+
+/**
+ * Render daftar faskes ke container (urutkan berdasarkan jarak jika lokasi tersedia)
+ */
+function renderFaskesList() {
+  const container = document.getElementById('faskesContainerList');
+  if (!container) return;
+
+  let faskesList = [...FASKES_DATABASE];
+
+  // Jika lokasi pengguna tersedia, hitung jarak dan sort
+  if (userLocation) {
+    faskesList.forEach(f => {
+      f.distance = haversineDistance(userLocation.lat, userLocation.lng, f.lat, f.lng);
+    });
+    faskesList.sort((a, b) => a.distance - b.distance);
+    // Ambil 5 terdekat
+    faskesList = faskesList.slice(0, 5);
+  } else {
+    // Tanpa lokasi, tampilkan 3 default pertama
+    faskesList = faskesList.slice(0, 3);
+  }
+
+  container.innerHTML = '';
+
+  faskesList.forEach(f => {
+    const distanceText = f.distance != null
+      ? `📍 ${formatDistance(f.distance)} dari lokasi Anda`
+      : '📍 Jarak belum terdeteksi';
+
+    const card = document.createElement('div');
+    card.className = 'faskes-card';
+    card.innerHTML = `
+      <div class="faskes-main-info">
+        <h4>${sanitizeHTML(f.name)}</h4>
+        <p>${sanitizeHTML(f.desc)}</p>
+        <span class="faskes-distance-badge">${distanceText}</span>
+      </div>
+      <div class="faskes-card-actions">
+        <button class="btn-referral-wa" data-faskes="${sanitizeHTML(f.name)}">
+          <span>Rujuk WA</span>
+        </button>
+        ${f.distance != null ? `<a class="btn-faskes-map" href="https://www.google.com/maps/dir/?api=1&destination=${f.lat},${f.lng}" target="_blank" rel="noopener">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+          Buka Maps
+        </a>` : ''}
+      </div>
+    `;
+
+    // Bind referral WA button
+    const waBtn = card.querySelector('.btn-referral-wa');
+    if (waBtn) {
+      waBtn.addEventListener('click', () => {
+        showReferralTicketModal(f.name);
+      });
+    }
+
+    container.appendChild(card);
+  });
+}
+
+/**
+ * Inisialisasi fitur Geolocation & GPS
+ */
+function initGeolocation() {
+  const btnRequest = document.getElementById('btnRequestLocation');
+  const btnSearchNearby = document.getElementById('btnSearchNearbyFaskes');
+  const statusBadge = document.getElementById('locationStatusBadge');
+  const statusDesc = document.getElementById('locationStatusDesc');
+  const coordsTag = document.getElementById('locationCoordsTag');
+  const card = document.getElementById('locationDetectorCard');
+
+  // Render faskes default (tanpa lokasi)
+  renderFaskesList();
+
+  const handleLocationRequest = () => {
+    if (!navigator.geolocation) {
+      showToast('Browser tidak mendukung fitur GPS/Geolokasi.', 'error');
+      return;
+    }
+
+    // Set loading state
+    if (card) card.className = 'location-detector-card locating';
+    if (statusBadge) { statusBadge.textContent = 'Mendeteksi...'; statusBadge.style.color = '#2563eb'; statusBadge.style.background = '#dbeafe'; }
+    if (statusDesc) statusDesc.textContent = 'Meminta izin akses lokasi GPS dari perangkat Anda...';
+    if (btnRequest) {
+      btnRequest.disabled = true;
+      btnRequest.innerHTML = '<span>Mendeteksi...</span>';
+    }
+    if (btnSearchNearby) {
+      btnSearchNearby.disabled = true;
+      btnSearchNearby.innerHTML = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg> <span>Sedang Meminta Izin Lokasi Perangkat...</span>`;
+    }
+
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        userLocation = {
+          lat: position.coords.latitude,
+          lng: position.coords.longitude
+        };
+
+        // Update UI state: sukses
+        if (card) card.className = 'location-detector-card located';
+        if (statusBadge) { statusBadge.textContent = 'Aktif ✓'; statusBadge.style.color = '#15803d'; statusBadge.style.background = '#dcfce7'; }
+        if (statusDesc) statusDesc.textContent = 'Lokasi GPS berhasil terdeteksi. Faskes telah diurutkan dari yang paling dekat.';
+        if (coordsTag) {
+          coordsTag.style.display = 'inline-block';
+          coordsTag.textContent = `📍 Koordinat: ${userLocation.lat.toFixed(4)}, ${userLocation.lng.toFixed(4)}`;
+        }
+        if (btnRequest) {
+          btnRequest.disabled = false;
+          btnRequest.innerHTML = '<span>Perbarui GPS</span>';
+          btnRequest.className = 'btn-location-trigger active';
+        }
+        if (btnSearchNearby) {
+          btnSearchNearby.disabled = false;
+          btnSearchNearby.innerHTML = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg> <span>Faskes Terdekat Berhasil Ditemukan</span>`;
+          btnSearchNearby.style.background = '#15803d';
+        }
+
+        // Update ticket location info
+        const ticketLoc = document.getElementById('ticketLocationInfo');
+        if (ticketLoc) ticketLoc.textContent = `${userLocation.lat.toFixed(4)}, ${userLocation.lng.toFixed(4)}`;
+
+        showToast('📍 Izin lokasi diberikan! Menampilkan faskes terdekat dari posisi Anda.', 'success');
+
+        // Re-render faskes list yang sudah terurut berdasarkan jarak
+        renderFaskesList();
+      },
+      (error) => {
+        // Gagal mendapatkan lokasi
+        if (card) card.className = 'location-detector-card';
+        if (statusBadge) { statusBadge.textContent = 'Izin Belum Ada'; statusBadge.style.color = '#dc2626'; statusBadge.style.background = '#fef2f2'; }
+        
+        let errMsg = 'Gagal mendeteksi lokasi. ';
+        if (error.code === 1) errMsg = 'Izin lokasi perangkat belum diizinkan. Silakan beri izin lokasi di browser Anda.';
+        else if (error.code === 2) errMsg = 'Posisi GPS tidak tersedia.';
+        else errMsg = 'Waktu permintaan lokasi habis.';
+
+        if (statusDesc) statusDesc.textContent = errMsg;
+        if (btnRequest) {
+          btnRequest.disabled = false;
+          btnRequest.innerHTML = '<span>Minta Izin GPS</span>';
+          btnRequest.className = 'btn-location-trigger';
+        }
+        if (btnSearchNearby) {
+          btnSearchNearby.disabled = false;
+          btnSearchNearby.innerHTML = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a8 8 0 0 0-8 8c0 5.25 8 12 8 12s8-6.75 8-12a8 8 0 0 0-8-8z"/><circle cx="12" cy="10" r="3"/></svg> <span>Cari Faskes Terdekat (Izin Lokasi Perangkat)</span>`;
+          btnSearchNearby.style.background = 'linear-gradient(135deg, #0d9488 0%, #0284c7 100%)';
+        }
+
+        showToast(errMsg, 'warning');
+      },
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 300000 }
+    );
+  };
+
+  if (btnRequest) btnRequest.addEventListener('click', handleLocationRequest);
+  if (btnSearchNearby) btnSearchNearby.addEventListener('click', handleLocationRequest);
+}
+
 // ====== INITIALIZATION ======
 document.addEventListener('DOMContentLoaded', () => {
   activeChild = getActiveChild();
@@ -108,6 +305,7 @@ document.addEventListener('DOMContentLoaded', () => {
   initPresentationControls();
   initScanner();
   initProfileForm();
+  initGeolocation();
   renderHistoryTimeline();
   updateLiveClock();
   setInterval(updateLiveClock, 1000);
@@ -505,21 +703,35 @@ function initPresentationControls() {
     });
   }
 
-  // Referral WhatsApp Button Action
-  const btnWaReferrals = document.querySelectorAll('.btn-referral-wa');
+  // Referral WhatsApp Button Action (handled via renderFaskesList delegation)
   const modalTicket = document.getElementById('modalReferralTicket');
   const btnCloseTicket = document.getElementById('btnCloseTicket');
-
-  btnWaReferrals.forEach(btn => {
-    btn.addEventListener('click', () => {
-      const faskesName = btn.dataset.faskes || 'Puskesmas Dayah Sehat';
-      showReferralTicketModal(faskesName);
-    });
-  });
 
   if (btnCloseTicket && modalTicket) {
     btnCloseTicket.addEventListener('click', () => {
       modalTicket.classList.remove('active');
+    });
+  }
+
+  // WhatsApp send button in ticket modal
+  const btnSendTicketWa = document.getElementById('btnSendTicketWa');
+  if (btnSendTicketWa) {
+    btnSendTicketWa.addEventListener('click', () => {
+      const patientName = document.getElementById('ticketPatientName')?.textContent || '-';
+      const ticketCode = document.getElementById('ticketCode')?.textContent || '-';
+      const faskesName = document.getElementById('ticketFaskesName')?.textContent || '-';
+      const locationInfo = document.getElementById('ticketLocationInfo')?.textContent || '-';
+
+      const waText = encodeURIComponent(
+        `[TIKET RUJUKAN DIGITAL SIGI-AI]\n` +
+        `Nomor Tiket: ${ticketCode}\n` +
+        `Pasien: ${patientName}\n` +
+        `Tujuan: ${faskesName}\n` +
+        `Lokasi GPS: ${locationInfo}\n` +
+        `Prioritas: Triage Otomatis SIGI-AI\n\n` +
+        `Mohon jadwalkan pemeriksaan gigi anak. Terima kasih.`
+      );
+      window.open(`https://wa.me/?text=${waText}`, '_blank');
     });
   }
 }
@@ -564,6 +776,7 @@ function showReferralTicketModal(faskesName) {
   const ticketCodeEl = document.getElementById('ticketCode');
   const ticketFaskesEl = document.getElementById('ticketFaskesName');
   const ticketPatientEl = document.getElementById('ticketPatientName');
+  const ticketLocEl = document.getElementById('ticketLocationInfo');
 
   const randomCode = `REF-${Math.floor(100000 + Math.random() * 900000)}`;
   if (ticketCodeEl) ticketCodeEl.textContent = randomCode;
@@ -572,6 +785,11 @@ function showReferralTicketModal(faskesName) {
     ticketPatientEl.textContent = activeChild
       ? `${activeChild.name} (${activeChild.age})`
       : '—';
+  }
+  if (ticketLocEl) {
+    ticketLocEl.textContent = userLocation
+      ? `${userLocation.lat.toFixed(4)}, ${userLocation.lng.toFixed(4)}`
+      : 'Belum terdeteksi';
   }
 
   if (modal) modal.classList.add('active');

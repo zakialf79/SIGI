@@ -262,8 +262,9 @@
             </div>
           </div>
 
-          <!-- Hidden File Upload for Custom Images -->
+          <!-- Hidden File Upload & Native Camera Capture -->
           <input type="file" id="scannerFileInput" accept="image/*" style="display: none;">
+          <input type="file" id="scannerCameraInput" accept="image/*" capture="environment" style="display: none;">
 
           <!-- Scanner Controls -->
           <div class="scanner-controls-row">
@@ -303,6 +304,7 @@
             <div class="result-risk-text">
               <h2 id="resultRiskTitle">MENUNGGU PEMERIKSAAN</h2>
               <p id="resultRiskSub">Lakukan pemindaian gigi terlebih dahulu.</p>
+              <div id="aiSourceBadge" class="ai-source-tag" style="display: none;"></div>
             </div>
           </div>
 
@@ -421,38 +423,35 @@
             <p>Terhubung langsung dengan jaringan Posyandu & Poli Gigi Puskesmas wilayah Anda.</p>
           </div>
 
-          <!-- Facilities List -->
-          <div class="faskes-card">
-            <div class="faskes-main-info">
-              <h4>Puskesmas Dayah Sehat</h4>
-              <p>Poli Gigi Anak • Buka Senin-Sabtu</p>
-              <span class="faskes-distance-badge">📍 1.2 km dari lokasi</span>
-            </div>
-            <button class="btn-referral-wa" data-faskes="Puskesmas Dayah Sehat">
-              <span>Rujuk WA</span>
+          <!-- Tombol Aksi Cari Faskes Terdekat Berbasis Lokasi Perangkat -->
+          <div style="margin-bottom: 14px;">
+            <button class="btn-primary-action" id="btnSearchNearbyFaskes" style="background: linear-gradient(135deg, #0d9488 0%, #0284c7 100%);">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a8 8 0 0 0-8 8c0 5.25 8 12 8 12s8-6.75 8-12a8 8 0 0 0-8-8z"/><circle cx="12" cy="10" r="3"/></svg>
+              <span>Cari Faskes Terdekat (Izin Lokasi Perangkat)</span>
             </button>
           </div>
 
-          <div class="faskes-card">
-            <div class="faskes-main-info">
-              <h4>Posyandu Melati Indah</h4>
-              <p>Kader Ibu Rahma • Jadwal Timbang Bulanan</p>
-              <span class="faskes-distance-badge">📍 450 m dari rumah</span>
+          <!-- Geolocation Detector Card Status -->
+          <div class="location-detector-card" id="locationDetectorCard">
+            <div class="location-icon-wrapper" id="locationStatusIcon">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a8 8 0 0 0-8 8c0 5.25 8 12 8 12s8-6.75 8-12a8 8 0 0 0-8-8z"/><circle cx="12" cy="10" r="3"/></svg>
             </div>
-            <button class="btn-referral-wa" data-faskes="Posyandu Melati Indah">
-              <span>Rujuk WA</span>
+            <div class="location-text-info">
+              <h4 id="locationStatusTitle">
+                <span>Status Lokasi Perangkat:</span>
+                <span class="faskes-badge-type" id="locationStatusBadge">Belum Aktif</span>
+              </h4>
+              <p id="locationStatusDesc">Tekan tombol di atas untuk mengizinkan akses lokasi perangkat agar jarak faskes dihitung akurat.</p>
+              <div class="location-coords-tag" id="locationCoordsTag" style="display: none;"></div>
+            </div>
+            <button class="btn-location-trigger" id="btnRequestLocation">
+              <span>Minta Izin GPS</span>
             </button>
           </div>
 
-          <div class="faskes-card">
-            <div class="faskes-main-info">
-              <h4>RS Khusus Gigi & Mulut (RSGM)</h4>
-              <p>Dokter Gigi Spesialis Pedodonti (KGA)</p>
-              <span class="faskes-distance-badge">📍 4.8 km</span>
-            </div>
-            <button class="btn-referral-wa" data-faskes="RSGM Pendidikan">
-              <span>Rujuk WA</span>
-            </button>
+          <!-- Facilities Dynamic List -->
+          <div id="faskesContainerList">
+            <!-- Dynamically populated via JS -->
           </div>
 
           <!-- Screening History Timeline -->
@@ -505,10 +504,17 @@
         <strong>NOMOR TIKET :</strong> <span id="ticketCode">REF-000000</span><br>
         <strong>NAMA PASIEN :</strong> <span id="ticketPatientName">—</span><br>
         <strong>TUJUAN      :</strong> <span id="ticketFaskesName">—</span><br>
+        <strong>LOKASI GPS  :</strong> <span id="ticketLocationInfo">Otomatis Terdeteksi</span><br>
         <strong>PRIORITAS   :</strong> Triage Otomatis SIGI-AI
       </div>
 
-      <button class="btn-modal-close" id="btnCloseTicket">Selesai & Tutup</button>
+      <div style="display: flex; flex-direction: column; gap: 8px;">
+        <button class="btn-primary-action" id="btnSendTicketWa" style="background: #22c55e;">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>
+          Kirim Tiket ke WhatsApp Kader/Faskes
+        </button>
+        <button class="btn-modal-close" id="btnCloseTicket">Selesai & Tutup</button>
+      </div>
     </div>
   </div>
 
