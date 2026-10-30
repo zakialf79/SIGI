@@ -118,6 +118,7 @@ function initScanner() {
       // Reset custom captured photo saat pengguna secara eksplisit memilih preset demo
       customCapturedImage = null;
       customAnalyzedCase = null;
+      sessionStorage.removeItem('sigi_active_scan_img');
       
       stopLiveCamera();
       if (CLINICAL_CASES[caseKey]) {
@@ -277,12 +278,12 @@ function runAIScanSimulation() {
   const videoStream = document.getElementById('scannerVideoStream');
   const previewImg = document.getElementById('scannerPreviewImg');
 
-  // Jika kamera aktif, AMBIL SNAPSHOT NYATA DARI FRAME KAMERA WEB!
-  if (isCameraActive && videoStream && videoStream.videoWidth) {
+  // Jika kamera aktif, AMBIL SNAPSHOT NYATA DARI FRAME KAMERA WEB / HP!
+  if (isCameraActive && videoStream) {
     try {
       const canvas = document.createElement('canvas');
-      const vw = videoStream.videoWidth;
-      const vh = videoStream.videoHeight;
+      const vw = videoStream.videoWidth || videoStream.clientWidth || 640;
+      const vh = videoStream.videoHeight || videoStream.clientHeight || 480;
       canvas.width = vw;
       canvas.height = vh;
       const ctx = canvas.getContext('2d');
@@ -290,6 +291,7 @@ function runAIScanSimulation() {
       
       const capturedDataUrl = canvas.toDataURL('image/jpeg', 0.92);
       customCapturedImage = capturedDataUrl;
+      sessionStorage.setItem('sigi_active_scan_img', capturedDataUrl);
       
       // Hentikan live stream dan freeze tampilan ke foto yang baru saja diambil
       stopLiveCamera();
@@ -298,21 +300,26 @@ function runAIScanSimulation() {
       previewImg.style.display = 'block';
       videoStream.style.display = 'none';
 
-      // Jalankan analisis Computer Vision pada frame foto kamera yang baru diambil
+      // Langsung buat analisis Computer Vision pada frame foto kamera yang baru diambil
       customAnalyzedCase = performDentalAnalysisOnImage(ctx, vw, vh, capturedDataUrl, 'camera');
       
       if (window.showToast) {
-        showToast('Foto berhasil ditangkap! Menganalisis kondisi gigi anak...', 'info');
+        showToast('Foto kamera berhasil diambil! Memproses analisis AI...', 'info');
       }
     } catch (e) {
       console.error('Gagal mengambil frame kamera:', e);
       stopLiveCamera();
     }
-  } else if (customCapturedImage && !customAnalyzedCase) {
-    // Jika ada gambar upload tapi belum dianalisis
-    analyzeImageFromDataUrl(customCapturedImage, (analyzed) => {
-      customAnalyzedCase = analyzed;
-    });
+  } else if (!customCapturedImage && previewImg && previewImg.src && !previewImg.src.includes('.svg')) {
+    // Jika ada foto di preview dari galeri atau kamera native
+    customCapturedImage = previewImg.src;
+    sessionStorage.setItem('sigi_active_scan_img', customCapturedImage);
+    customAnalyzedCase = createInstantDentalCase(customCapturedImage, 'foto');
+  }
+
+  // Simpan ke sessionStorage untuk jaminan persistensi
+  if (customCapturedImage && !customCapturedImage.includes('.svg')) {
+    sessionStorage.setItem('sigi_active_scan_img', customCapturedImage);
   }
 
   // Disable shutter while scanning
@@ -341,13 +348,16 @@ function populateAndShowResults(caseKey) {
   let caseData;
   let isRealPhoto = false;
 
-  // Prioritaskan foto nyata jika baru saja diambil dari kamera web atau upload galeri
-  if (customCapturedImage) {
+  // Cek foto nyata baik dari memory maupun sessionStorage
+  const activePhoto = customCapturedImage || sessionStorage.getItem('sigi_active_scan_img');
+
+  // Prioritaskan 100% foto nyata jika ada foto yang diambil/diunggah
+  if (activePhoto && !activePhoto.includes('.svg')) {
     if (!customAnalyzedCase) {
-      customAnalyzedCase = createInstantDentalCase(customCapturedImage, 'foto');
+      customAnalyzedCase = createInstantDentalCase(activePhoto, 'foto');
     }
     caseData = customAnalyzedCase;
-    caseData.imageSrc = customCapturedImage; // JAMINAN 100%: Menggunakan foto aktual dari pengguna!
+    caseData.imageSrc = activePhoto; // MUTLAK: Menggunakan foto aktual dari pengguna!
     isRealPhoto = true;
   } else {
     caseData = CLINICAL_CASES[caseKey] || CLINICAL_CASES.case1;
@@ -378,7 +388,7 @@ function populateAndShowResults(caseKey) {
     sourceBadge.style.display = 'inline-flex';
     if (isRealPhoto) {
       sourceBadge.className = 'ai-source-tag real-photo';
-      sourceBadge.innerHTML = `📸 Citra Foto Nyata (${caseData.sourceType === 'camera' ? 'Kamera Web' : 'Galeri'})`;
+      sourceBadge.innerHTML = `📸 Citra Foto Nyata (${caseData.sourceType === 'camera' ? 'Kamera Web' : 'Galeri/Kamera'})`;
     } else {
       sourceBadge.className = 'ai-source-tag';
       sourceBadge.innerHTML = '📋 Kasus Preset Klinis (Demo)';
